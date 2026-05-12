@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { ProfileSettings } from "./profile-settings";
 import { StravaActions } from "./strava-actions";
 
 type Props = {
@@ -17,6 +18,12 @@ export default async function SettingsPage({ searchParams }: Props) {
   }
 
   const athleteId = user.id;
+
+  const { data: athleteRow } = await supabase
+    .from("athletes")
+    .select("observed_max_hr")
+    .eq("id", athleteId)
+    .single();
 
   const sp = await searchParams;
   const strava = typeof sp.strava === "string" ? sp.strava : undefined;
@@ -86,6 +93,20 @@ export default async function SettingsPage({ searchParams }: Props) {
           Strava error{reason ? `: ${reason}` : ""}.
         </p>
       ) : null}
+
+      <section className="mt-10" aria-labelledby="profile-heading">
+        <h2 id="profile-heading" className="font-sans text-[15px] font-semibold">
+          Profile
+        </h2>
+        <ProfileSettings
+          athleteId={athleteId}
+          initialMaxHr={
+            typeof athleteRow?.observed_max_hr === "number"
+              ? athleteRow.observed_max_hr
+              : null
+          }
+        />
+      </section>
 
       <section className="mt-10" aria-labelledby="integrations-heading">
         <h2 id="integrations-heading" className="font-sans text-[15px] font-semibold">
