@@ -1,9 +1,7 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { isoMondayLocal } from "@/lib/report/date";
 
-/** Authenticated users go straight to their current week report. */
 export default async function HomePage() {
   const week = isoMondayLocal();
   const supabase = await createClient();
@@ -11,11 +9,9 @@ export default async function HomePage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (user) {
-    redirect(`/report/${user.id}/${week}`);
-  }
-
-  const liveReportHref = `/report/demo/${week}`;
+  const liveReportHref = user
+    ? `/report/${user.id}/${week}`
+    : `/report/demo/${week}`;
 
   return (
     <div className="mx-auto max-w-5xl px-5 py-12 md:px-12 md:py-16">
@@ -155,13 +151,21 @@ export default async function HomePage() {
         </p>
       </section>
 
-      <div className="mt-12 border-t border-[var(--border)] pt-8">
+      <div className="mt-12 border-t border-[var(--border)] pt-8 flex items-center gap-4">
         <Link
           href={liveReportHref}
           className="inline-flex min-h-11 items-center justify-center rounded bg-[var(--accent)] px-5 font-sans text-[13px] font-medium text-white transition-colors hover:bg-[#245045]"
         >
-          Your weekly report →
+          {user ? "Your weekly report →" : "View demo report →"}
         </Link>
+        {!user && (
+          <Link
+            href="/auth/login"
+            className="font-sans text-[13px] text-[var(--text-muted)] underline underline-offset-2 hover:text-[var(--accent)]"
+          >
+            Log in
+          </Link>
+        )}
       </div>
     </div>
   );
