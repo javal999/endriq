@@ -1,10 +1,14 @@
 import Link from "next/link";
-import { DEFAULT_SEEDED_ATHLETE_ID } from "@/lib/enduranceiq/constants";
+import { createClient } from "@/lib/supabase/server";
 import { isoMondayLocal } from "@/lib/report/date";
 
 export async function Nav() {
   const week = isoMondayLocal();
-  const reportHref = `/report/${DEFAULT_SEEDED_ATHLETE_ID}/${week}`;
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const reportHref = user
+    ? `/report/${user.id}/${week}`
+    : `/report/demo/${week}`;
   const links = [
     { href: "/", label: "Home" },
     { href: reportHref, label: "Weekly report" },

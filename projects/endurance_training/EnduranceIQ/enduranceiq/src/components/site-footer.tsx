@@ -10,10 +10,10 @@ export function SiteFooter() {
         <p className="font-sans text-[12px] text-[var(--text-muted)]">
           © Levitations ·{" "}
           <a
-            href="https://enduranceiq.levitations.id"
+            href={process.env.NEXT_PUBLIC_APP_URL ?? "/"}
             className="text-[var(--accent)] underline underline-offset-2"
           >
-            enduranceiq.levitations.id
+            {process.env.NEXT_PUBLIC_APP_URL?.replace(/^https?:\/\//, "") ?? "endriq.levitations.id"}
           </a>
         </p>
         <ul className="flex flex-wrap gap-x-6 gap-y-2 font-sans text-[12px] text-[var(--text-muted)]">
