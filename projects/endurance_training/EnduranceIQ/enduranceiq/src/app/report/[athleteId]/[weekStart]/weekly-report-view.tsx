@@ -47,7 +47,10 @@ export function WeeklyReportView({
             className: "bg-[rgba(184,122,10,0.08)] text-[var(--status-warn)]",
           }
         : {
-            text: "Off target",
+            text:
+              model.intensity.pctEasy < 30 && model.intensity.pctHard > 50
+                ? "Missing easy volume"
+                : "Off target",
             className: "bg-[rgba(196,75,63,0.06)] text-[var(--status-bad)]",
           };
 
@@ -148,12 +151,17 @@ export function WeeklyReportView({
       )}
 
       <section className="mt-12" aria-labelledby="intensity-heading">
-        <div className="mb-6 flex items-baseline justify-between">
-          <h2 id="intensity-heading" className="font-sans text-[15px] font-semibold">
-            Intensity distribution
-          </h2>
+        <div className="mb-6 flex items-start justify-between gap-4">
+          <div>
+            <h2 id="intensity-heading" className="font-sans text-[15px] font-semibold">
+              Intensity distribution
+            </h2>
+            <p className="mt-0.5 font-sans text-[12px] text-[var(--text-muted)]">
+              Weekly balance across all running time — separate from individual session quality
+            </p>
+          </div>
           <span
-            className={`rounded px-2 py-1 font-sans text-[13px] font-medium ${intensityBadge.className}`}
+            className={`shrink-0 rounded px-2 py-1 font-sans text-[13px] font-medium ${intensityBadge.className}`}
           >
             {intensityBadge.text}
           </span>
@@ -203,9 +211,14 @@ export function WeeklyReportView({
       </section>
 
       <section className="mt-12" aria-labelledby="sessions-heading">
-        <h2 id="sessions-heading" className="mb-4 font-sans text-[15px] font-semibold">
-          Sessions
-        </h2>
+        <div className="mb-4">
+          <h2 id="sessions-heading" className="font-sans text-[15px] font-semibold">
+            Sessions
+          </h2>
+          <p className="mt-0.5 font-sans text-[12px] text-[var(--text-muted)]">
+            Status reflects execution quality for each session type, not weekly balance
+          </p>
+        </div>
         <SessionsTableWithHints
           sessions={model.sessions}
           explanations={sessionHints}
