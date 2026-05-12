@@ -1,15 +1,21 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { isoMondayLocal } from "@/lib/report/date";
 
-/** Demo home aligned with `enduranceiq-prototype.html` (sample numbers). */
+/** Authenticated users go straight to their current week report. */
 export default async function HomePage() {
   const week = isoMondayLocal();
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  const liveReportHref = user ? `/report/${user.id}/${week}` : `/report/demo/${week}`;
+
+  if (user) {
+    redirect(`/report/${user.id}/${week}`);
+  }
+
+  const liveReportHref = `/report/demo/${week}`;
 
   return (
     <div className="mx-auto max-w-5xl px-5 py-12 md:px-12 md:py-16">

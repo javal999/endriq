@@ -3,7 +3,6 @@ import { NextResponse, type NextRequest } from "next/server";
 
 export async function middleware(request: NextRequest) {
   const publicPaths = [
-    "/",
     "/auth",
     "/learn",
     "/report/demo",
