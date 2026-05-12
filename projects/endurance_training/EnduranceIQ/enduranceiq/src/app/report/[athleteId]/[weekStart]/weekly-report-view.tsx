@@ -206,6 +206,17 @@ export function WeeklyReportView({
               Hard (target ~10%)
             </li>
           </ul>
+          {model.sessions.some(
+            (s) => s.typeLabel === "Intervals" || s.typeLabel === "Tempo",
+          ) && (
+            <p className="mt-4 rounded border border-[rgba(184,122,10,0.2)] bg-[rgba(184,122,10,0.05)] px-3 py-2 font-sans text-[12px] leading-relaxed text-[var(--text-muted)]">
+              <strong className="font-medium text-[var(--text-secondary)]">Estimation note:</strong>{" "}
+              Zones are assigned from each session&apos;s <em>average</em> HR — not a lap-by-lap breakdown.
+              Interval and tempo sessions average high, so warmup and cooldown time
+              (which was likely easy) gets counted as hard. A week with only interval sessions
+              will almost always show skewed hard-zone time here.
+            </p>
+          )}
         </div>
         <IntensityExplanationParagraph text={intensityCopy} />
       </section>
