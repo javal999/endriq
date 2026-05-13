@@ -1,9 +1,11 @@
 import { redirect } from "next/navigation";
+import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { signState, STATE_COOKIE } from "@/lib/oauth/state";
 
 export const runtime = "nodejs";
 
-/** Starts Strava OAuth for the signed-in user (`state` = Supabase user id). */
+/** Starts Strava OAuth for the signed-in user. Binds signed state to session cookie. */
 export async function GET(request: Request) {
   const supabase = await createClient();
   const {
@@ -36,13 +38,23 @@ export async function GET(request: Request) {
   const scope =
     process.env.STRAVA_SCOPE ?? "read,activity:read,activity:read_all";
 
+  // Generate signed state + nonce
+  const { state, nonce } = signState(user.id);
+
   const auth = new URL("https://www.strava.com/oauth/authorize");
   auth.searchParams.set("client_id", clientId);
   auth.searchParams.set("redirect_uri", redirectUri);
   auth.searchParams.set("response_type", "code");
   auth.searchParams.set("approval_prompt", "force");
   auth.searchParams.set("scope", scope);
-  auth.searchParams.set("state", athleteId);
+  auth.searchParams.set("state", state);
 
-  redirect(auth.toString());
+  const response = NextResponse.redirect(auth.toString());
+  response.cookies.set(STATE_COOKIE, nonce, {
+    httpOnly: true,
+    sameSite: "lax",
+    maxAge: 600, // 10 min — matches STATE_TTL_MS
+    path: "/",
+  });
+  return response;
 }

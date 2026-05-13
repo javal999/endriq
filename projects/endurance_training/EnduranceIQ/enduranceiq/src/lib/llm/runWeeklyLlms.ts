@@ -188,6 +188,20 @@ export async function runWeeklyLlms(
     });
   }
 
+  if (!wRes) {
+    // API transport failure — no response at all
+    audits.push({
+      prompt_type: "weekly_analysis",
+      input_tokens: null,
+      output_tokens: null,
+      model: null,
+      output_text: null,
+      input_data: { snapshot: auditInputSnapshot(bundle) },
+      validation_passed: false,
+      validation_reason: "api_transport_error",
+    });
+  }
+
   if (!weeklySections) {
     weeklySections = weeklySectionsFromFindings(baseModel.findings);
   }
@@ -215,6 +229,19 @@ export async function runWeeklyLlms(
       },
       validation_passed: intensityPass,
       validation_reason: intensityPass ? null : intensityReason,
+    });
+  }
+
+  if (!iRes) {
+    audits.push({
+      prompt_type: "intensity_explanation",
+      input_tokens: null,
+      output_tokens: null,
+      model: null,
+      output_text: null,
+      input_data: { snapshot: auditInputSnapshot(bundle) },
+      validation_passed: false,
+      validation_reason: "api_transport_error",
     });
   }
 
@@ -251,6 +278,19 @@ export async function runWeeklyLlms(
       },
       validation_passed: sessionsPass,
       validation_reason: sessionsPass ? null : sessionsReason,
+    });
+  }
+
+  if (!sRes) {
+    audits.push({
+      prompt_type: "session_statuses",
+      input_tokens: null,
+      output_tokens: null,
+      model: null,
+      output_text: null,
+      input_data: { snapshot: auditInputSnapshot(bundle) },
+      validation_passed: false,
+      validation_reason: "api_transport_error",
     });
   }
 

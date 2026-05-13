@@ -288,7 +288,7 @@ export function WeeklyReportView({
           observed max HR. Consult a healthcare professional for medical concerns and a
           qualified coach for training programming.
         </p>
-        <ShareWeeklyButton athleteId={athleteId} weekStart={weekStart} />
+        <ShareWeeklyButton athleteId={athleteId} weekStart={weekStart} shareId={model.shareId} />
       </footer>
     </div>
   );

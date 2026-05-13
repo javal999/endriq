@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { syncStravaActivities } from "@/lib/strava/syncActivities";
 import { createClient } from "@/lib/supabase/server";
+import { checkLimit, stravaSyncLimit } from "@/lib/ratelimit";
 
 export const runtime = "nodejs";
 
@@ -29,6 +30,14 @@ export async function POST(request: Request) {
       }
     } catch {
       /* empty body OK */
+    }
+
+    const { allowed } = await checkLimit(stravaSyncLimit, athleteId);
+    if (!allowed) {
+      return NextResponse.json(
+        { ok: false, error: "Too many sync requests — wait a few minutes." },
+        { status: 429 },
+      );
     }
 
     const result = await syncStravaActivities(athleteId);

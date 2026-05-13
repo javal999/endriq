@@ -9,6 +9,7 @@ export async function middleware(request: NextRequest) {
     "/api/strava/webhook",
     "/api/strava/callback",
     "/api/share",
+    "/api/share/",
     "/api/coros/status",
     "/api/coros/callback",
   ];

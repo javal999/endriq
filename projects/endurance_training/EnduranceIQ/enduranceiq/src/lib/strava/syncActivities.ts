@@ -5,6 +5,8 @@ import {
   expiresAtFromStrava,
   refreshAccessToken,
 } from "@/lib/strava/oauth";
+import { readToken, encryptToken } from "@/lib/oauth/tokens";
+import { withAthleteRefreshLock } from "@/lib/oauth/refreshLock";
 
 function deriveObservedMaxHr(
   activities: StravaSummaryActivity[],
@@ -54,25 +56,30 @@ export async function syncStravaActivities(
     );
   }
 
-  let accessToken = conn.access_token as string;
-  let refreshToken = conn.refresh_token as string;
+  let accessToken = readToken(conn.access_token_enc as string, conn.access_token as string);
+  let refreshToken = readToken(conn.refresh_token_enc as string, conn.refresh_token as string);
 
   const exp = new Date(conn.expires_at as string).getTime();
   if (exp < Date.now() + 60_000) {
-    const refreshed = await refreshAccessToken(refreshToken);
-    accessToken = refreshed.access_token;
-    refreshToken = refreshed.refresh_token;
-    const { error: upErr } = await admin
-      .from("oauth_connections")
-      .update({
-        access_token: accessToken,
-        refresh_token: refreshToken,
-        expires_at: expiresAtFromStrava(refreshed.expires_at),
-        updated_at: new Date().toISOString(),
-      })
-      .eq("athlete_id", athleteId)
-      .eq("provider", "strava");
-    if (upErr) throw new Error(upErr.message);
+    // Advisory lock prevents concurrent webhook + sync from double-refreshing
+    await withAthleteRefreshLock(admin, athleteId, async () => {
+      const refreshed = await refreshAccessToken(refreshToken);
+      accessToken = refreshed.access_token;
+      refreshToken = refreshed.refresh_token;
+      const { error: upErr } = await admin
+        .from("oauth_connections")
+        .update({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+          access_token_enc: encryptToken(accessToken),
+          refresh_token_enc: encryptToken(refreshToken),
+          expires_at: expiresAtFromStrava(refreshed.expires_at),
+          updated_at: new Date().toISOString(),
+        })
+        .eq("athlete_id", athleteId)
+        .eq("provider", "strava");
+      if (upErr) throw new Error(upErr.message);
+    });
   }
 
   const after = Math.floor(Date.now() / 1000) - windowDays * 24 * 3600;

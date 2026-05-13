@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import { waitUntil } from "@vercel/functions";
 import type { NextRequest } from "next/server";
 import { generateWeeklyAnalysis } from "@/lib/analytics/weekly-analysis";
@@ -8,6 +9,8 @@ import {
   expiresAtFromStrava,
   refreshAccessToken,
 } from "@/lib/strava/oauth";
+import { readToken, encryptToken } from "@/lib/oauth/tokens";
+import { withAthleteRefreshLock } from "@/lib/oauth/refreshLock";
 import type { StravaSummaryActivity } from "@/lib/strava/types";
 
 export const runtime = "nodejs";
@@ -61,7 +64,7 @@ async function processStravaWebhookEvent(event: StravaWebhookEvent): Promise<voi
 
   const { data: conn, error: connErr } = await admin
     .from("oauth_connections")
-    .select("athlete_id, access_token, refresh_token, expires_at")
+    .select("athlete_id, access_token, refresh_token, access_token_enc, refresh_token_enc, expires_at")
     .eq("provider", "strava")
     .eq("external_athlete_id", String(event.owner_id))
     .maybeSingle();
@@ -75,24 +78,28 @@ async function processStravaWebhookEvent(event: StravaWebhookEvent): Promise<voi
     return;
   }
 
-  let accessToken = conn.access_token as string;
-  let refreshToken = conn.refresh_token as string;
+  let accessToken = readToken(conn.access_token_enc as string, conn.access_token as string);
+  let refreshToken = readToken(conn.refresh_token_enc as string, conn.refresh_token as string);
   const expMs = new Date(conn.expires_at as string).getTime();
   if (expMs < Date.now() + 60_000) {
-    const refreshed = await refreshAccessToken(refreshToken);
-    accessToken = refreshed.access_token;
-    refreshToken = refreshed.refresh_token;
-    const { error: upErr } = await admin
-      .from("oauth_connections")
-      .update({
-        access_token: accessToken,
-        refresh_token: refreshToken,
-        expires_at: expiresAtFromStrava(refreshed.expires_at),
-        updated_at: new Date().toISOString(),
-      })
-      .eq("athlete_id", conn.athlete_id)
-      .eq("provider", "strava");
-    if (upErr) throw new Error(upErr.message);
+    await withAthleteRefreshLock(admin, conn.athlete_id as string, async () => {
+      const refreshed = await refreshAccessToken(refreshToken);
+      accessToken = refreshed.access_token;
+      refreshToken = refreshed.refresh_token;
+      const { error: upErr } = await admin
+        .from("oauth_connections")
+        .update({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+          access_token_enc: encryptToken(accessToken),
+          refresh_token_enc: encryptToken(refreshToken),
+          expires_at: expiresAtFromStrava(refreshed.expires_at),
+          updated_at: new Date().toISOString(),
+        })
+        .eq("athlete_id", conn.athlete_id)
+        .eq("provider", "strava");
+      if (upErr) throw new Error(upErr.message);
+    });
   }
 
   const activityId = event.object_id;
@@ -159,9 +166,34 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: Request) {
+  // Verify HMAC signature — Strava signs with STRAVA_CLIENT_SECRET.
+  // Header: X-Hub-Signature (format: sha256=<hex>).
+  // Note: Strava docs historically mention both X-Hub-Signature and X-Strava-Signature;
+  // the live API uses X-Hub-Signature as of 2025.
+  const rawBody = await request.text();
+  const signature = request.headers.get("x-hub-signature");
+  const clientSecret = process.env.STRAVA_CLIENT_SECRET;
+
+  if (clientSecret) {
+    const expected =
+      "sha256=" +
+      crypto
+        .createHmac("sha256", clientSecret)
+        .update(rawBody)
+        .digest("hex");
+
+    if (
+      !signature ||
+      signature.length !== expected.length ||
+      !crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected))
+    ) {
+      return new Response("Forbidden", { status: 403 });
+    }
+  }
+
   let event: StravaWebhookEvent;
   try {
-    event = (await request.json()) as StravaWebhookEvent;
+    event = JSON.parse(rawBody) as StravaWebhookEvent;
   } catch {
     return Response.json({ ok: true });
   }

@@ -1,9 +1,11 @@
 import { redirect } from "next/navigation";
+import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { signState, STATE_COOKIE } from "@/lib/oauth/state";
 
 export const runtime = "nodejs";
 
-/** Starts COROS OAuth for the signed-in user (`state` = Supabase user id). */
+/** Starts COROS OAuth for the signed-in user. Binds signed state to session cookie. */
 export async function GET(request: Request) {
   const supabase = await createClient();
   const {
@@ -33,13 +35,21 @@ export async function GET(request: Request) {
     );
   }
 
+  const { state, nonce } = signState(user.id);
+
   const auth = new URL("https://open.coros.com/oauth2/authorize");
   auth.searchParams.set("client_id", clientId);
   auth.searchParams.set("redirect_uri", redirectUri);
   auth.searchParams.set("response_type", "code");
   auth.searchParams.set("scope", "activity.read");
-  // state = user.id; CSRF hardening deferred to Task 11 (same gap as Strava)
-  auth.searchParams.set("state", athleteId);
+  auth.searchParams.set("state", state);
 
-  redirect(auth.toString());
+  const response = NextResponse.redirect(auth.toString());
+  response.cookies.set(STATE_COOKIE, nonce, {
+    httpOnly: true,
+    sameSite: "lax",
+    maxAge: 600,
+    path: "/",
+  });
+  return response;
 }

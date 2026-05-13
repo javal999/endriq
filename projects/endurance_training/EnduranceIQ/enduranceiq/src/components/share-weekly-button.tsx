@@ -6,13 +6,18 @@ import { useTranslations } from "next-intl";
 export function ShareWeeklyButton({
   athleteId,
   weekStart,
+  shareId,
 }: {
   athleteId: string;
   weekStart: string;
+  shareId?: string;
 }) {
   const t = useTranslations("report");
   const dlg = useRef<HTMLDialogElement>(null);
-  const pngPath = `/api/share/weekly/${encodeURIComponent(athleteId)}/${encodeURIComponent(weekStart)}`;
+  // Prefer the share_id URL (doesn't expose athlete ID); fall back to legacy URL
+  const pngPath = shareId
+    ? `/api/share/${encodeURIComponent(shareId)}`
+    : `/api/share/weekly/${encodeURIComponent(athleteId)}/${encodeURIComponent(weekStart)}`;
   const [copied, setCopied] = useState(false);
 
   const open = useCallback(() => {

@@ -66,6 +66,8 @@ export interface WeeklyReportModel {
   missingProfileFields?: string[];
   /** Whether this athlete opted into experimental strength recommendations. */
   strengthOptIn?: boolean;
+  /** UUID share_id from weekly_analyses — used for the /api/share/[shareId] endpoint. */
+  shareId?: string;
   /** 8-week trend data for sparklines (undefined when insufficient history). */
   trend?: TrendPoint[];
   /** Present after server enrichment (cached LLM + validated session copy). */

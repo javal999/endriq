@@ -6,6 +6,9 @@ import {
   expiresAtFromCoros,
   refreshAccessTokenCoros,
 } from "@/lib/coros/oauth";
+import { readToken, encryptToken } from "@/lib/oauth/tokens";
+import { checkLimit, corosSyncLimit } from "@/lib/ratelimit";
+import { withAthleteRefreshLock } from "@/lib/oauth/refreshLock";
 import type { CorosActivityListResponse } from "@/lib/coros/types";
 
 export const runtime = "nodejs";
@@ -33,6 +36,14 @@ export async function POST(request: Request) {
       /* empty body OK */
     }
 
+    const { allowed } = await checkLimit(corosSyncLimit, athleteId);
+    if (!allowed) {
+      return NextResponse.json(
+        { ok: false, error: "Too many sync requests — wait a few minutes." },
+        { status: 429 },
+      );
+    }
+
     const admin = createAdminClient();
 
     const { data: athlete } = await admin
@@ -55,23 +66,28 @@ export async function POST(request: Request) {
       );
     }
 
-    let accessToken = conn.access_token as string;
+    let accessToken = readToken(conn.access_token_enc as string, conn.access_token as string);
 
-    // Refresh if near expiry
+    // Refresh if near expiry (advisory lock prevents concurrent double-refresh)
     const exp = new Date(conn.expires_at as string).getTime();
     if (exp < Date.now() + 60_000) {
-      const refreshed = await refreshAccessTokenCoros(conn.refresh_token as string);
-      accessToken = refreshed.access_token;
-      await admin
-        .from("oauth_connections")
-        .update({
-          access_token: accessToken,
-          refresh_token: refreshed.refresh_token,
-          expires_at: expiresAtFromCoros(refreshed.expires_in),
-          updated_at: new Date().toISOString(),
-        })
-        .eq("athlete_id", athleteId)
-        .eq("provider", "coros");
+      await withAthleteRefreshLock(admin, athleteId, async () => {
+        const refreshToken = readToken(conn.refresh_token_enc as string, conn.refresh_token as string);
+        const refreshed = await refreshAccessTokenCoros(refreshToken);
+        accessToken = refreshed.access_token;
+        await admin
+          .from("oauth_connections")
+          .update({
+            access_token: accessToken,
+            refresh_token: refreshed.refresh_token,
+            access_token_enc: encryptToken(accessToken),
+            refresh_token_enc: encryptToken(refreshed.refresh_token),
+            expires_at: expiresAtFromCoros(refreshed.expires_in),
+            updated_at: new Date().toISOString(),
+          })
+          .eq("athlete_id", athleteId)
+          .eq("provider", "coros");
+      });
     }
 
     const observedMaxHr =

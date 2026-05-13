@@ -23,7 +23,7 @@ export async function generateWeeklyAnalysis(
   const { data: existing } = await db
     .from("weekly_analyses")
     .select(
-      "llm_weekly_analysis, llm_intensity_explanation, llm_session_statuses, llm_weekly_from_api",
+      "llm_weekly_analysis, llm_intensity_explanation, llm_session_statuses, llm_weekly_from_api, share_id",
     )
     .eq("athlete_id", athleteId)
     .eq("week_start", weekStart)
@@ -110,5 +110,9 @@ export async function generateWeeklyAnalysis(
     llmDisabledReason: apiKey ? undefined : "no_api_key",
   });
 
-  return { ...payload, model };
+  // Attach the share_id from the DB row (set by DB default on first insert)
+  const shareId =
+    typeof existing?.share_id === "string" ? existing.share_id : undefined;
+
+  return { ...payload, model: { ...model, ...(shareId ? { shareId } : {}) } };
 }
