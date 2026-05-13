@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 
 export function ShareWeeklyButton({
   athleteId,
@@ -9,6 +10,7 @@ export function ShareWeeklyButton({
   athleteId: string;
   weekStart: string;
 }) {
+  const t = useTranslations("report");
   const dlg = useRef<HTMLDialogElement>(null);
   const pngPath = `/api/share/weekly/${encodeURIComponent(athleteId)}/${encodeURIComponent(weekStart)}`;
   const [copied, setCopied] = useState(false);
@@ -40,7 +42,7 @@ export function ShareWeeklyButton({
         onClick={open}
         className="inline-flex min-h-11 shrink-0 items-center justify-center rounded border border-[var(--border)] px-5 font-sans text-[13px] font-medium text-[var(--text-secondary)] transition-colors hover:border-[var(--accent)] hover:bg-[rgba(46,94,78,0.09)] hover:text-[var(--accent)]"
       >
-        Share this week
+        {t("share.button")}
       </button>
 
       <dialog
@@ -49,15 +51,20 @@ export function ShareWeeklyButton({
         onClose={() => setCopied(false)}
       >
         <div className="flex items-start justify-between gap-3">
-          <p className="font-sans text-[14px] font-semibold text-[var(--text-primary)]">
-            Share card preview
-          </p>
+          <div>
+            <p className="font-sans text-[14px] font-semibold text-[var(--text-primary)]">
+              {t("share.modal.title")}
+            </p>
+            <p className="mt-0.5 font-sans text-[12px] text-[var(--text-muted)]">
+              {t("share.modal.desc")}
+            </p>
+          </div>
           <button
             type="button"
             onClick={close}
             className="rounded px-2 py-1 font-sans text-[12px] text-[var(--text-muted)] hover:bg-[var(--surface-raised)]"
           >
-            Close
+            ×
           </button>
         </div>
 
@@ -78,14 +85,14 @@ export function ShareWeeklyButton({
             onClick={() => void copyUrl()}
             className="inline-flex min-h-10 flex-1 items-center justify-center rounded border border-[var(--border)] px-3 font-sans text-[13px] font-medium text-[var(--text-secondary)] hover:border-[var(--accent)] hover:bg-[rgba(46,94,78,0.09)]"
           >
-            {copied ? "Copied URL" : "Copy image URL"}
+            {copied ? "✓" : t("share.modal.copy")}
           </button>
           <a
             href={pngPath}
             download={`enduranceiq-week-${weekStart}.png`}
             className="inline-flex min-h-10 flex-1 items-center justify-center rounded bg-[var(--accent)] px-3 font-sans text-[13px] font-medium text-white hover:bg-[#245045]"
           >
-            Download PNG
+            {t("share.modal.download")}
           </a>
         </div>
       </dialog>

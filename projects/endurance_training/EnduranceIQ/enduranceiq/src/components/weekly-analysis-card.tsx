@@ -1,6 +1,13 @@
+import Link from "next/link";
 import type { WeeklyReportModel } from "@/lib/report/model";
 
-export function WeeklyAnalysisCard({ model }: { model: WeeklyReportModel }) {
+export function WeeklyAnalysisCard({
+  model,
+  hrRestMissing,
+}: {
+  model: WeeklyReportModel;
+  hrRestMissing?: boolean;
+}) {
   const sections =
     model.llm?.weeklySections ?? {
       wentWell:
@@ -68,6 +75,17 @@ export function WeeklyAnalysisCard({ model }: { model: WeeklyReportModel }) {
             ANTHROPIC_API_KEY
           </code>{" "}
           is set on the server. Copy below uses rules + static templates.
+        </p>
+      ) : null}
+      {hrRestMissing ? (
+        <p className="mt-3 font-[family-name:var(--font-instrument)] text-[13px] italic text-[var(--text-muted)]">
+          TRIMP calculated without resting HR — actual load may be ±10% off.{" "}
+          <Link
+            href="/settings#profile"
+            className="text-[var(--accent)] underline underline-offset-2 not-italic"
+          >
+            Add your resting HR →
+          </Link>
         </p>
       ) : null}
     </section>

@@ -8,7 +8,13 @@ export interface LlmWeeklySections {
 /** One row in `weekly_analyses.llm_session_statuses` JSONB array. */
 export interface LlmSessionStatusRow {
   workout_id: string;
+  /** Legacy single-paragraph explanation (retained for backwards compat with stored rows). */
   explanation: string;
+  /** Structured fields — computed on next regen; absent on older stored rows. */
+  observation?: string;
+  comparison?: string;
+  suggestion?: string;
+  status_explanation?: string;
 }
 
 /** Prompt-facing snapshot built only from DB-derived metrics (no activity titles). */
@@ -39,4 +45,6 @@ export interface LlmWeeklyBundle {
   avgEasyRunHr: number | null;
   sessionLedgerJson: string;
   workoutIds: string[];
+  /** Athlete's preferred locale — drives translate-after pass for Bahasa users. */
+  preferredLocale?: string;
 }

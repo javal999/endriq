@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { ProfileSettings } from "./profile-settings";
 import { StravaActions } from "./strava-actions";
+import { CorosActions } from "./coros-actions";
+import { ExperimentalStrengthToggle } from "./experimental-strength-toggle";
 
 type Props = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -21,9 +23,16 @@ export default async function SettingsPage({ searchParams }: Props) {
 
   const { data: athleteRow } = await supabase
     .from("athletes")
-    .select("observed_max_hr")
+    .select("observed_max_hr, hr_rest, strength_recommendations_optin")
     .eq("id", athleteId)
     .single();
+
+  const { data: corosConn } = await supabase
+    .from("oauth_connections")
+    .select("updated_at")
+    .eq("athlete_id", athleteId)
+    .eq("provider", "coros")
+    .maybeSingle();
 
   const sp = await searchParams;
   const strava = typeof sp.strava === "string" ? sp.strava : undefined;
@@ -105,6 +114,11 @@ export default async function SettingsPage({ searchParams }: Props) {
               ? athleteRow.observed_max_hr
               : null
           }
+          initialHrRest={
+            typeof athleteRow?.hr_rest === "number"
+              ? athleteRow.hr_rest
+              : null
+          }
         />
       </section>
 
@@ -124,19 +138,62 @@ export default async function SettingsPage({ searchParams }: Props) {
           </div>
         </div>
 
-        <div className="mt-4 rounded border border-[var(--border)] bg-[var(--surface)] p-6 opacity-90">
+        <div className="mt-4 rounded border border-[var(--border)] bg-[var(--surface)] p-6">
           <h3 className="font-sans text-[14px] font-medium text-[var(--text-primary)]">
-            COROS (direct)
+            COROS
           </h3>
           <p className="mt-2 text-[13px] leading-relaxed text-[var(--text-secondary)]">
-            Not enabled yet.{" "}
+            One-click OAuth — reads activities directly from your COROS watch.
+            Requires{" "}
+            <code className="rounded bg-[var(--surface-raised)] px-1 font-mono text-[12px]">
+              COROS_CLIENT_ID
+            </code>{" "}
+            and{" "}
+            <code className="rounded bg-[var(--surface-raised)] px-1 font-mono text-[12px]">
+              COROS_CLIENT_SECRET
+            </code>{" "}
+            in your environment. Register at{" "}
             <a
-              href="/api/coros/status"
+              href="https://opens.coros.com"
+              target="_blank"
+              rel="noopener noreferrer"
               className="text-[var(--accent)] underline underline-offset-2"
             >
-              Status JSON
+              opens.coros.com
             </a>
+            .
           </p>
+          <div className="mt-5">
+            <CorosActions
+              athleteId={athleteId}
+              connected={corosConn != null}
+              lastSync={corosConn?.updated_at ?? null}
+            />
+          </div>
+        </div>
+
+        <div className="mt-4 rounded border border-[var(--border)] bg-[var(--surface)] p-6 opacity-75">
+          <h3 className="font-sans text-[14px] font-medium text-[var(--text-primary)]">
+            Garmin
+          </h3>
+          <p className="mt-2 text-[13px] leading-relaxed text-[var(--text-secondary)]">
+            If you have a Garmin, enable Strava sync in Garmin Connect
+            (Settings → Connect → Strava). Your Garmin activities will flow
+            through Strava into EnduranceIQ. Direct Garmin integration is
+            planned for a future phase.
+          </p>
+        </div>
+      </section>
+
+      <section id="experimental" className="mt-10" aria-labelledby="experimental-heading">
+        <h2 id="experimental-heading" className="font-sans text-[15px] font-semibold">
+          Experimental features
+        </h2>
+        <div className="mt-4 rounded border border-[var(--border)] bg-[var(--surface)] p-6">
+          <ExperimentalStrengthToggle
+            athleteId={athleteId}
+            initialOptin={Boolean(athleteRow?.strength_recommendations_optin)}
+          />
         </div>
       </section>
 

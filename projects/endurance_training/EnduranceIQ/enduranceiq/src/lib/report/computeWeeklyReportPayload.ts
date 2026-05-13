@@ -10,6 +10,8 @@ import {
   sessionTypeLabel,
 } from "@/lib/analytics/sessionDisplay";
 import { computeRuleFindings } from "@/lib/analytics/rulesEngine";
+import { computeIntensityV2 } from "@/lib/analytics/intensityV2";
+import { detectRunningPatterns } from "@/lib/analytics/runningPatterns";
 import type { WeeklyReportModel } from "@/lib/report/model";
 import {
   addDaysIsoMonday,
@@ -71,6 +73,11 @@ export interface WeeklyAnalysisUpsert {
     | null;
   llm_weekly_from_api?: boolean;
   strength_recommendation?: StrengthRecommendationRecord | null;
+  // Intensity v2 shadow columns
+  pct_load_z1_2?: number | null;
+  pct_load_z3?: number | null;
+  pct_load_z4_5?: number | null;
+  intensity_v2_meta?: Record<string, unknown> | null;
 }
 
 export interface WeeklyReportPayload {
@@ -212,7 +219,8 @@ export function assembleWeeklyReportPayload(input: {
   weekEndExclusiveMs: number;
   athlete: Record<string, unknown>;
   allWorkouts: WorkoutRow[];
-  lastStrengthSessionId: "A" | "B" | "C" | null;
+  /** @deprecated v2 uses pattern-driven selection; this param is ignored. */
+  lastStrengthSessionId?: "A" | "B" | "C" | null;
 }): WeeklyReportPayload {
   const {
     athleteId,
@@ -245,6 +253,20 @@ export function assembleWeeklyReportPayload(input: {
     observedMaxHr,
   );
 
+  // Shadow: TRIMP-weighted dual metric (not shown in UI yet — promote in Phase 1.4)
+  const ar3 = athlete as { hr_rest?: number | null; sex?: string | null };
+  const intensityV2 = computeIntensityV2(
+    runsWeek.map((w) => ({
+      duration_seconds: w.duration_seconds,
+      avg_hr: w.avg_hr,
+    })),
+    observedMaxHr,
+    typeof ar3.hr_rest === "number" ? ar3.hr_rest : null,
+    (ar3.sex === "male" || ar3.sex === "female" || ar3.sex === "other")
+      ? ar3.sex
+      : null,
+  );
+
   const load = computeLoadMetrics(all, weekEndExclusiveMs);
 
   const prevWeekStart = addDaysIsoMonday(weekStart, -7);
@@ -257,14 +279,8 @@ export function assembleWeeklyReportPayload(input: {
   const loadWordForStrength =
     load.statusWord === "—" ? "Normal" : load.statusWord;
 
-  const strengthRecommendation = buildStrengthRecommendation({
-    runsWeek,
-    loadRatio: load.loadRatio,
-    loadStatusWord: loadWordForStrength,
-    raceDateIso: goalRaceDate,
-    referenceMs,
-    lastSessionId: lastStrengthSessionId,
-  });
+  // Strength recommendation is built after findings (pattern detection needs them)
+  // — initialized below after computeRuleFindings
 
   const distM = sumDistanceRunBike(weekWorkouts);
   const prevDistM = sumDistanceRunBike(prevWeekWorkouts);
@@ -356,6 +372,25 @@ export function assembleWeeklyReportPayload(input: {
 
   const interference = interferenceSnippet(findings);
 
+  // Pattern detection + strength recommendation (findings now in scope)
+  const patterns = detectRunningPatterns({
+    weekWorkouts,
+    load,
+    intensityV2,
+    raceDateIso: goalRaceDate,
+    referenceMs,
+    findings,
+  });
+
+  const strengthRecommendation = buildStrengthRecommendation({
+    runsWeek,
+    loadRatio: load.loadRatio,
+    loadStatusWord: loadWordForStrength,
+    raceDateIso: goalRaceDate,
+    referenceMs,
+    primaryPattern: patterns.primary,
+  });
+
   const ceilingRaw = (athlete as { estimated_zone2_ceiling?: number | null })
     .estimated_zone2_ceiling;
   const z2CeilingHr =
@@ -383,9 +418,40 @@ export function assembleWeeklyReportPayload(input: {
 
   const emptyWeek = weekWorkouts.length === 0;
 
+  const ar2 = athlete as {
+    hr_rest?: number | null;
+    sex?: string | null;
+    goal_race_type?: string | null;
+  };
+  const hrRestMissing = ar2.hr_rest == null;
+  const raceDateMissing = goalRaceDate == null;
+
+  const missingProfileFields: string[] = [];
+  if (ar2.hr_rest == null) missingProfileFields.push("hr_rest");
+  if (!ar2.sex) missingProfileFields.push("sex");
+  if (
+    ar2.goal_race_type &&
+    ar2.goal_race_type !== "general_fitness" &&
+    !goalRaceDate
+  ) {
+    missingProfileFields.push("goal_race_date");
+  }
+  if (!(athlete as { goal_weekly_km?: unknown }).goal_weekly_km) {
+    missingProfileFields.push("goal_weekly_km");
+  }
+  if (
+    !(athlete as { observed_max_hr?: unknown }).observed_max_hr
+  ) {
+    missingProfileFields.push("observed_max_hr");
+  }
+
   const model: WeeklyReportModel = {
     weekRangeLabel: formatWeekRangeLabel(weekStart),
     emptyWeek,
+    hrRestMissing,
+    raceDateMissing,
+    missingProfileFields,
+    strengthOptIn: Boolean((athlete as { strength_recommendations_optin?: unknown }).strength_recommendations_optin),
     summary: {
       distanceKm: emptyWeek ? "—" : distKm.toFixed(1),
       distanceMeta,
@@ -436,6 +502,15 @@ export function assembleWeeklyReportPayload(input: {
     month_avg_load: monthAvgLoadVal > 0 ? monthAvgLoadVal : null,
     data_sources: deriveWeekDataSources(weekWorkouts),
     strength_recommendation: strengthRecommendation.record,
+    // Intensity v2 shadow — stored but not shown in UI until Phase 1.4 promotion
+    pct_load_z1_2: intensityV2.pctEasyLoad / 100,
+    pct_load_z3: intensityV2.pctModerateLoad / 100,
+    pct_load_z4_5: intensityV2.pctHardLoad / 100,
+    intensity_v2_meta: {
+      model: intensityV2.modelUsed,
+      total_trimp: intensityV2.totalTrimp,
+      warnings: intensityV2.warnings,
+    },
   };
 
   const ar = athlete as {
@@ -456,6 +531,11 @@ export function assembleWeeklyReportPayload(input: {
     )
     .join("\n");
 
+  // Prior sessions (before this week) — for recent_same_type comparison
+  const priorWorkouts = all
+    .filter((w) => new Date(w.started_at).getTime() < weekStartMs)
+    .sort((a, b) => new Date(b.started_at).getTime() - new Date(a.started_at).getTime());
+
   const ledgerRows = sortedWeekForLedger.map((w) => {
     const st = sessionHrStatus(w, observedMaxHr);
     const dm = w.distance_meters;
@@ -467,14 +547,34 @@ export function assembleWeeklyReportPayload(input: {
       const n = typeof dm === "number" ? dm : Number(dm);
       if (Number.isFinite(n)) distanceKm = Math.round((n / 1000) * 100) / 100;
     }
+
+    // Attach up to 3 recent same-label sessions for LLM comparison
+    const recentSameType = priorWorkouts
+      .filter((p) => p.session_label === w.session_label && p.sport_type === w.sport_type)
+      .slice(0, 3)
+      .map((p) => {
+        const pd = p.distance_meters;
+        const pdKm =
+          pd != null && Number.isFinite(Number(pd))
+            ? Math.round((Number(pd) / 1000) * 100) / 100
+            : null;
+        return {
+          started_at: p.started_at,
+          distance_km: pdKm,
+          avg_hr: p.avg_hr,
+        };
+      });
+
     return {
       workout_id: stableWorkoutKey(w, athleteId),
       started_at: w.started_at,
       sport_type: w.sport_type,
+      session_label: w.session_label,
       distance_km: distanceKm,
       avg_hr: w.avg_hr,
       status_label: st.label,
       status_tone: st.tone,
+      recent_same_type: recentSameType.length > 0 ? recentSameType : undefined,
     };
   });
 
@@ -515,6 +615,10 @@ export function assembleWeeklyReportPayload(input: {
       avgEasyRunHr: avgEasyRunHrWeek(weekWorkouts),
       sessionLedgerJson: JSON.stringify(ledgerRows),
       workoutIds: ledgerRows.map((r) => r.workout_id),
+      preferredLocale:
+        typeof (athlete as { preferred_locale?: unknown }).preferred_locale === "string"
+          ? ((athlete as { preferred_locale: string }).preferred_locale)
+          : "en",
     };
   }
 
@@ -547,7 +651,7 @@ export async function computeWeeklyReportPayload(
   const { data: athlete, error: athErr } = await db
     .from("athletes")
     .select(
-      "id, observed_max_hr, goal_race_type, goal_race_date, goal_weekly_km, estimated_zone2_ceiling",
+      "id, observed_max_hr, goal_race_type, goal_race_date, goal_weekly_km, estimated_zone2_ceiling, hr_rest, sex, preferred_locale, strength_recommendations_optin",
     )
     .eq("id", athleteId)
     .maybeSingle();
@@ -574,21 +678,16 @@ export async function computeWeeklyReportPayload(
 
   const prevWeekStart = addDaysIsoMonday(weekStart, -7);
 
-  const { data: prevStrengthRow } = await db
+  // Fetch up to 8 weeks of trend data for sparklines
+  const { data: trendRows } = await db
     .from("weekly_analyses")
-    .select("strength_recommendation")
+    .select("week_start, total_distance_meters, acute_load, pct_zone1_2")
     .eq("athlete_id", athleteId)
-    .eq("week_start", prevWeekStart)
-    .maybeSingle();
+    .lte("week_start", weekStart)
+    .order("week_start", { ascending: false })
+    .limit(8);
 
-  const prevStrengthParsed = parseStrengthRecord(
-    prevStrengthRow?.strength_recommendation,
-  );
-  const sid = prevStrengthParsed?.session_id;
-  const lastStrengthSessionId =
-    sid === "A" || sid === "B" || sid === "C" ? sid : null;
-
-  return assembleWeeklyReportPayload({
+  const payload = await assembleWeeklyReportPayload({
     athleteId,
     weekStart,
     startIso,
@@ -597,6 +696,22 @@ export async function computeWeeklyReportPayload(
     weekEndExclusiveMs,
     athlete: athlete as Record<string, unknown>,
     allWorkouts: all,
-    lastStrengthSessionId,
   });
+
+  // Attach trend data to model when ≥3 weeks available
+  if (trendRows && trendRows.length >= 3) {
+    const trend = [...trendRows]
+      .reverse()
+      .map((r) => ({
+        weekStart: String(r.week_start),
+        distanceKm: typeof r.total_distance_meters === "number"
+          ? Math.round(r.total_distance_meters / 100) / 10
+          : 0,
+        acuteLoad: typeof r.acute_load === "number" ? Math.round(r.acute_load) : 0,
+        pctZone1_2: typeof r.pct_zone1_2 === "number" ? Math.round(r.pct_zone1_2 * 100) : 0,
+      }));
+    payload.model = { ...payload.model, trend };
+  }
+
+  return payload;
 }

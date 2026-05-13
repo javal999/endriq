@@ -37,11 +37,18 @@ function parseWeeklyStored(
   return parseWeeklySectionsJson(raw);
 }
 
-function normalizeSessionRows(
-  raw: unknown,
-): Array<{ workout_id: string; explanation: string }> {
+type StoredSessionRow = {
+  workout_id: string;
+  explanation: string;
+  observation?: string;
+  comparison?: string;
+  suggestion?: string;
+  status_explanation?: string;
+};
+
+function normalizeSessionRows(raw: unknown): StoredSessionRow[] {
   if (!Array.isArray(raw)) return [];
-  const out: Array<{ workout_id: string; explanation: string }> = [];
+  const out: StoredSessionRow[] = [];
   for (const item of raw) {
     if (!item || typeof item !== "object") continue;
     const row = item as Record<string, unknown>;
@@ -53,7 +60,15 @@ function normalizeSessionRows(
           : null;
     const ex =
       typeof row.explanation === "string" ? row.explanation.trim() : "";
-    if (wid && ex.length >= 8) out.push({ workout_id: wid, explanation: ex });
+    if (!wid || ex.length < 8) continue;
+    out.push({
+      workout_id: wid,
+      explanation: ex,
+      observation: typeof row.observation === "string" ? row.observation.trim() : undefined,
+      comparison: typeof row.comparison === "string" ? row.comparison.trim() : undefined,
+      suggestion: typeof row.suggestion === "string" ? row.suggestion.trim() : undefined,
+      status_explanation: typeof row.status_explanation === "string" ? row.status_explanation.trim() : undefined,
+    });
   }
   return out;
 }
@@ -78,9 +93,18 @@ export function enrichWeeklyReportWithLlm(
     intensityExplanationFallback(base);
 
   const sessionMap: Record<string, string> = {};
+  const sessionStructured: Record<string, { observation?: string; comparison?: string; suggestion?: string; status_explanation?: string }> = {};
   const stored = normalizeSessionRows(row.llm_session_statuses);
   for (const r of stored) {
     sessionMap[r.workout_id] = r.explanation;
+    if (r.observation || r.comparison || r.suggestion || r.status_explanation) {
+      sessionStructured[r.workout_id] = {
+        observation: r.observation,
+        comparison: r.comparison,
+        suggestion: r.suggestion,
+        status_explanation: r.status_explanation,
+      };
+    }
   }
 
   const z2 =
@@ -104,6 +128,7 @@ export function enrichWeeklyReportWithLlm(
       weeklySections: weekly,
       intensityExplanation: intensity,
       sessionExplanations: sessionMap,
+      sessionStructured: Object.keys(sessionStructured).length > 0 ? sessionStructured : undefined,
       weeklyNarrativeFromApi: Boolean(row.llm_weekly_from_api),
       llmDisabledReason: row.llmDisabledReason,
     },

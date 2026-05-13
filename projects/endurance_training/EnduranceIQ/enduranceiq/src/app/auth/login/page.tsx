@@ -29,8 +29,10 @@ function LoginForm() {
         setError(signErr.message);
         return;
       }
-      let next = searchParams.get("redirect") ?? "/";
-      if (!next.startsWith("/")) next = "/";
+      let next = searchParams.get("redirect") ?? "/dashboard";
+      if (!next.startsWith("/") || next.startsWith("//") || next.startsWith("/\\")) {
+        next = "/dashboard";
+      }
       router.replace(next);
       router.refresh();
     } finally {

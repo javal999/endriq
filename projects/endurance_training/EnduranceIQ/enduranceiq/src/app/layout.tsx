@@ -4,6 +4,8 @@ import {
   Inter_Tight,
   JetBrains_Mono,
 } from "next/font/google";
+import { NextIntlClientProvider } from "next-intl";
+import { getLocale, getMessages } from "next-intl/server";
 import "./globals.css";
 import { Nav } from "@/components/nav";
 import { SiteFooter } from "@/components/site-footer";
@@ -33,25 +35,30 @@ export const metadata: Metadata = {
     "Intensity distribution and training load from your watch export — evidence-backed, not medical advice.",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const locale = await getLocale();
+  const messages = await getMessages();
+
   return (
     <html
-      lang="en"
+      lang={locale}
       className={`${interTight.variable} ${jetbrains.variable} ${instrument.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col font-sans">
-        <a className="skip-link text-sm text-[var(--accent)]" href="#main-content">
-          Skip to content
-        </a>
-        <Nav />
-        <main id="main-content" className="flex-1">
-          {children}
-        </main>
-        <SiteFooter />
+        <NextIntlClientProvider locale={locale} messages={messages}>
+          <a className="skip-link text-sm text-[var(--accent)]" href="#main-content">
+            Skip to content
+          </a>
+          <Nav />
+          <main id="main-content" className="flex-1">
+            {children}
+          </main>
+          <SiteFooter />
+        </NextIntlClientProvider>
       </body>
     </html>
   );

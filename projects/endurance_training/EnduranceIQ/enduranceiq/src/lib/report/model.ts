@@ -1,5 +1,12 @@
 import type { StrengthRecommendationModel } from "@/lib/analytics/strength-generator";
 
+export interface TrendPoint {
+  weekStart: string;
+  distanceKm: number;
+  acuteLoad: number;
+  pctZone1_2: number;
+}
+
 export type BadgeTone = "good" | "warn" | "bad";
 
 /** Serialized weekly narrative (stored as JSON string in `weekly_analyses.llm_weekly_analysis`). */
@@ -51,11 +58,28 @@ export interface WeeklyReportModel {
     evidenceStrength?: string;
   }>;
   emptyWeek?: boolean;
+  /** True when athlete.hr_rest is null — signals TRIMP uses HR-max-only approximation. */
+  hrRestMissing?: boolean;
+  /** True when athlete.goal_race_date is null — signals no taper recommendations available. */
+  raceDateMissing?: boolean;
+  /** Profile fields that are null — drives the completeness banner on dashboard + report. */
+  missingProfileFields?: string[];
+  /** Whether this athlete opted into experimental strength recommendations. */
+  strengthOptIn?: boolean;
+  /** 8-week trend data for sparklines (undefined when insufficient history). */
+  trend?: TrendPoint[];
   /** Present after server enrichment (cached LLM + validated session copy). */
   llm?: {
     weeklySections: LlmWeeklySectionsModel;
     intensityExplanation: string;
     sessionExplanations: Record<string, string>;
+    /** Structured per-session fields (new regens only; absent on older rows). */
+    sessionStructured?: Record<string, {
+      observation?: string;
+      comparison?: string;
+      suggestion?: string;
+      status_explanation?: string;
+    }>;
     /** Weekly narrative parsed from Haiku (vs rules-engine fallback). */
     weeklyNarrativeFromApi?: boolean;
     /** Set when ANTHROPIC_API_KEY is missing so the UI can explain static copy. */

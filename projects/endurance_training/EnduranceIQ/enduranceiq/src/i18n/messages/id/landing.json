@@ -1,0 +1,35 @@
+{
+  "hero": {
+    "label": "EnduranceIQ",
+    "headline": "Second opinion yang cerdas buat latihan marathon lo.",
+    "subhead": "EnduranceIQ baca data jam tangan lo dan kasih tau apa yang salah, kenapa itu penting, dan apa yang harus diubah.",
+    "ctaSample": "Lihat contoh laporan mingguan →",
+    "ctaSampleDesc": "Cek dulu sebelum daftar.",
+    "ctaSignup": "Daftar pakai Strava"
+  },
+  "problem": {
+    "p1": "Kebanyakan pelari marathon self-coached lari terlalu keras di easy day tapi gak sadar.",
+    "p2": "Wearable nunjukin datanya. Tapi gak ngartiin.",
+    "p3": "Contoh nyata: 8 lari berturut-turut selama 2 minggu dengan rata-rata 154–176 bpm, dan nol Zone 2 running. Si pelari gak sadar sampai analisisnya muncul."
+  },
+  "features": {
+    "title": "Yang lo dapet tiap minggu",
+    "intensityTitle": "Cek intensitas",
+    "intensityBody": "Bandingkan minggu lo sama target 80/20 dari riset. Lihat berapa persen latihanmu yang easy, moderate, dan hard — dan kenapa itu penting.",
+    "loadTitle": "Training load",
+    "loadBody": "Status dalam bahasa biasa: Normal, Elevated, Spike, Low. Dengan baseline 4 minggu biar lo tau kalau lo naik terlalu cepat.",
+    "strengthTitle": "Menu strength",
+    "strengthBody": "Satu sesi yang fokus per minggu, disesuaiin sama data lari lo. Udah ada jadwalnya — gak perlu nebak kapan harus angkat beban."
+  },
+  "methodology": {
+    "headline": "Setiap rekomendasi dikasih sumber risetnya.",
+    "p1": "Target distribusi intensitas diambil dari riset polarized training. Threshold training load ngikutin metodologi acute/chronic workload. Rekomendasi strength mengutip literatur running economy dan pencegahan cedera. Gak ada yang asal-asalan.",
+    "p2": "Semua citation link ke paper-nya langsung. Kalau DOI error 404, kita ganti. Kalau buktinya moderate bukan strong, kita bilang.",
+    "link": "Baca metodologi lengkap →"
+  },
+  "cta": {
+    "headline": "Sambungin Strava lo, dapat laporan pertama dalam 2 menit.",
+    "subhead": "Gratis. Tanpa kartu kredit.",
+    "button": "Mulai sekarang"
+  }
+}

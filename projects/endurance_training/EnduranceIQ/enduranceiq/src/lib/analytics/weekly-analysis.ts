@@ -44,8 +44,10 @@ export async function generateWeeklyAnalysis(
   let llm_session_statuses: unknown = existing?.llm_session_statuses ?? [];
   let llm_weekly_from_api = Boolean(existing?.llm_weekly_from_api);
 
+  let pack: Awaited<ReturnType<typeof runWeeklyLlms>> | null = null;
+
   if (shouldRunLlm && payload.llmBundle) {
-    const pack = await runWeeklyLlms(payload.llmBundle, payload.model);
+    pack = await runWeeklyLlms(payload.llmBundle, payload.model);
     llm_weekly_analysis = pack.llm_weekly_analysis;
     llm_intensity_explanation = pack.llm_intensity_explanation;
     llm_session_statuses = pack.llm_session_statuses;
@@ -75,16 +77,35 @@ export async function generateWeeklyAnalysis(
       llm_intensity_explanation,
       llm_session_statuses,
       llm_weekly_from_api,
+      // Bahasa translations (null if athlete is English or translation failed)
+      llm_weekly_analysis_id: pack?.llm_weekly_analysis_id ?? null,
+      llm_intensity_explanation_id: pack?.llm_intensity_explanation_id ?? null,
+      llm_session_statuses_id: pack?.llm_session_statuses_id ?? null,
       generated_at: new Date().toISOString(),
     },
     { onConflict: "athlete_id,week_start" },
   );
   if (error) throw error;
 
+  // For ID users, serve the translated narrative if available
+  const locale = payload.llmBundle?.preferredLocale ?? "en";
+  const effectiveWeekly =
+    locale === "id" && pack?.llm_weekly_analysis_id
+      ? pack.llm_weekly_analysis_id
+      : llm_weekly_analysis;
+  const effectiveIntensity =
+    locale === "id" && pack?.llm_intensity_explanation_id
+      ? pack.llm_intensity_explanation_id
+      : llm_intensity_explanation;
+  const effectiveSessions =
+    locale === "id" && pack?.llm_session_statuses_id
+      ? pack.llm_session_statuses_id
+      : llm_session_statuses;
+
   const model = enrichWeeklyReportWithLlm(payload.model, {
-    llm_weekly_analysis,
-    llm_intensity_explanation,
-    llm_session_statuses,
+    llm_weekly_analysis: effectiveWeekly,
+    llm_intensity_explanation: effectiveIntensity,
+    llm_session_statuses: effectiveSessions,
     llm_weekly_from_api,
     llmDisabledReason: apiKey ? undefined : "no_api_key",
   });

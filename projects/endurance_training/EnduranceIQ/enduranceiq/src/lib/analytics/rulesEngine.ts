@@ -1,6 +1,7 @@
 import type { WeeklyReportModel } from "@/lib/report/model";
 import type { LoadMetrics } from "@/lib/analytics/trainingLoad";
 import type { IntensityBreakdown } from "@/lib/analytics/intensityDistribution";
+import { citationToLink } from "@/lib/data/citations";
 
 export interface WorkoutForRules {
   sport_type: string;
@@ -88,14 +89,8 @@ export function computeRuleFindings(options: {
       title: "Easy volume below research target",
       body: `${options.intensity.pctEasy}% of running time in Zone 1–2 this week. Polarized training targets roughly 80% easy / 10% moderate / 10% hard.`,
       citations: [
-        {
-          label: "Seiler (2010)",
-          href: "https://doi.org/10.2165/11530080-000000000-00000",
-        },
-        {
-          label: "Stöggl & Sperlich (2014)",
-          href: "https://doi.org/10.3389/fphys.2014.00033",
-        },
+        citationToLink("seiler_2010"),
+        citationToLink("stoggl_sperlich_2014"),
       ],
       confidence: "Confidence: High — pattern visible across the week",
       evidenceStrength: "Strong",
@@ -110,14 +105,8 @@ export function computeRuleFindings(options: {
       title: "Training load spike",
       body: `Load ratio ${options.load.loadRatio.toFixed(2)} (acute vs chronic). Sharp jumps raise injury risk until chronic catches up.`,
       citations: [
-        {
-          label: "Gabbett (2016)",
-          href: "https://doi.org/10.1136/bjsports-2015-095878",
-        },
-        {
-          label: "Hulin et al. (2016)",
-          href: "https://doi.org/10.1136/bjsports-2016-096283",
-        },
+        citationToLink("gabbett_2016"),
+        citationToLink("hulin_2016"),
       ],
       confidence: "Confidence: High — ratio exceeds consensus spike band",
       evidenceStrength: "Strong",
@@ -132,10 +121,7 @@ export function computeRuleFindings(options: {
       title: "Elevated training load",
       body: `Load ratio ${options.load.loadRatio.toFixed(2)}. Monitor recovery and avoid stacking hard sessions.`,
       citations: [
-        {
-          label: "Windt et al. (2017)",
-          href: "https://doi.org/10.1136/bjsports-2016-097269",
-        },
+        citationToLink("windt_2017"),
       ],
       confidence: "Confidence: Moderate",
       evidenceStrength: "Moderate",
@@ -156,10 +142,7 @@ export function computeRuleFindings(options: {
       title: "Week without a full rest day",
       body: `${streak} consecutive training days with structured work. Planning easy or rest days supports adaptation.`,
       citations: [
-        {
-          label: "Budgett (1998)",
-          href: "https://doi.org/10.1136/bjsm.32.2.178",
-        },
+        citationToLink("budgett_1998"),
       ],
       confidence: "Confidence: Moderate — calendar inference only",
       evidenceStrength: "Moderate",
@@ -184,10 +167,7 @@ export function computeRuleFindings(options: {
         body:
           "Average HR on the long run sits close to general aerobic efforts. Consider slowing early miles so the last third stays controlled.",
         citations: [
-          {
-            label: "Laursen (2010)",
-            href: "https://doi.org/10.2165/11530770-000000000-00000",
-          },
+          citationToLink("laursen_2010"),
         ],
         confidence: "Confidence: Moderate — single-session avg HR",
         evidenceStrength: "Moderate",
@@ -212,10 +192,7 @@ export function computeRuleFindings(options: {
       body:
         "Stride turnover looks low on at least one interval session. Light strides or slight inclines can cue quicker turnover without forcing pace.",
       citations: [
-        {
-          label: "Wilks et al. (2023)",
-          href: "https://doi.org/10.1123/jscr.2022-0417",
-        },
+        citationToLink("heiderscheit_2011"),
       ],
       confidence: "Confidence: Low — cadence from vendor summary only",
       evidenceStrength: "Limited",
@@ -248,14 +225,8 @@ export function computeRuleFindings(options: {
           title: "Strength close to a quality run",
           body: `Strength ended ~${hoursAfter.toFixed(1)} hours before a ${q.session_label === "interval" ? "interval" : "tempo"} session. Same-day lifting plus quality running can blunt neuromuscular quality.`,
           citations: [
-            {
-              label: "Fyfe et al. (2014)",
-              href: "https://doi.org/10.1007/s40279-013-0131-5",
-            },
-            {
-              label: "Wilson et al. (2012)",
-              href: "https://doi.org/10.1519/JSC.0b013e3182429f27",
-            },
+            citationToLink("fyfe_2014"),
+            citationToLink("wilson_2012"),
           ],
           confidence:
             hoursAfter <= 2

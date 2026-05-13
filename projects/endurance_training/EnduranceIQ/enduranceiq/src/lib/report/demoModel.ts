@@ -34,7 +34,7 @@ export function buildDemoWeeklyReport(weekStart: string): WeeklyReportModel {
     loadStatusWord: "Normal",
     raceDateIso: null,
     referenceMs,
-    lastSessionId: null,
+    primaryPattern: "default",
   });
 
   const intensityExplanation =

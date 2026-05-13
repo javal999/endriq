@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { CitationLink } from "@/components/citation-link";
 
 export const metadata: Metadata = {
   title: "Learn — EnduranceIQ methodology",
@@ -11,30 +12,55 @@ const toc = [
   { href: "#methodology", label: "Overview & narratives" },
   { href: "#intensity-distribution", label: "Intensity distribution" },
   { href: "#training-load-acwr", label: "Training load (acute/chronic)" },
+  { href: "#intensity-measurement", label: "Why we measure both time and load" },
   { href: "#heart-rate-zones", label: "Heart rate zones" },
   { href: "#concurrent-training", label: "Concurrent training" },
   { href: "#strength-for-runners", label: "Strength for runners" },
+  { href: "#strength-methodology", label: "Strength: methodology + research" },
   { href: "#session-classification", label: "Session classification" },
 ];
 
-function Ref({
-  label,
-  doi,
+import type { CitationId } from "@/lib/data/citations";
+
+function RefItem({ children }: { children: import("react").ReactNode }) {
+  return <li className="mt-1">{children}</li>;
+}
+
+function StrengthPattern({
+  pattern,
+  emphasis,
+  why,
+  evidence,
+  citationId,
+  secondaryCitationId,
 }: {
-  label: string;
-  doi: string;
+  pattern: string;
+  emphasis: string;
+  why: string;
+  evidence: string;
+  citationId: CitationId;
+  secondaryCitationId?: CitationId;
 }) {
   return (
-    <li className="mt-1">
-      <a
-        href={`https://doi.org/${doi}`}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="text-[var(--accent)] underline underline-offset-2"
-      >
-        {label}
-      </a>
-    </li>
+    <div className="rounded border border-[var(--border)] bg-[var(--surface)] p-5">
+      <p className="font-sans text-[12px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">Pattern</p>
+      <p className="mt-1 font-sans text-[14px] font-medium text-[var(--text-primary)]" dangerouslySetInnerHTML={{ __html: pattern }} />
+      <p className="mt-3 font-sans text-[12px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">Emphasis</p>
+      <p className="mt-1 font-sans text-[14px] text-[var(--text-secondary)]">{emphasis}</p>
+      <p className="mt-3 font-sans text-[12px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">Why</p>
+      <p className="mt-1 font-sans text-[14px] leading-relaxed text-[var(--text-secondary)]">{why}</p>
+      <p className="mt-3 font-sans text-[12px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">Evidence</p>
+      <p className="mt-1 font-sans text-[14px] leading-relaxed text-[var(--text-secondary)]">
+        {evidence}{" "}
+        <CitationLink id={citationId} />
+        {secondaryCitationId && (
+          <>
+            {"; "}
+            <CitationLink id={secondaryCitationId} />
+          </>
+        )}
+      </p>
+    </div>
   );
 }
 
@@ -88,8 +114,8 @@ export default function LearnPage() {
           Benchmark heuristic aligns loosely with polarised prescriptions—a directional compass rather than laboratory-derived physiology labels.
         </p>
         <ul className="mt-4 list-none font-sans text-[14px] text-[var(--text-secondary)]">
-          <Ref label="Seiler (2010)" doi="10.2165/11530080-000000000-00000" />
-          <Ref label="Stöggl & Sperlich (2014)" doi="10.3389/fphys.2014.00033" />
+          <RefItem><CitationLink id="seiler_2010" /></RefItem>
+          <RefItem><CitationLink id="stoggl_sperlich_2014" /></RefItem>
         </ul>
       </section>
 
@@ -100,8 +126,37 @@ export default function LearnPage() {
           Elevated ratios flag spikes needing pacing restraint relative to historical norms—not Garmin readiness scores.
         </p>
         <ul className="mt-4 list-none font-sans text-[14px] text-[var(--text-secondary)]">
-          <Ref label="Gabbett (2016)" doi="10.1136/bjsports-2015-095878" />
-          <Ref label="Windt et al. (2017)" doi="10.1136/bjsports-2016-097269" />
+          <RefItem><CitationLink id="gabbett_2016" /></RefItem>
+          <RefItem><CitationLink id="windt_2017" /></RefItem>
+        </ul>
+      </section>
+
+      <section id="intensity-measurement" className="mt-14 scroll-mt-24 border-t border-[var(--border)] pt-12">
+        <h2 className="font-sans text-[17px] font-semibold">Why we measure both time and load</h2>
+        <p className="mt-3 font-sans text-[15px] leading-relaxed text-[var(--text-secondary)]">
+          Time-in-zone and TRIMP-weighted load share tell different stories. Two athletes can both spend 80% of
+          their running time in Zone 1–2, yet if one athlete&apos;s hard sessions are much harder, their
+          load share from Zone 4–5 will be significantly higher than their time share suggests. Looking at
+          both metrics together catches this hidden polarization gap.
+        </p>
+        <p className="mt-4 font-sans text-[15px] leading-relaxed text-[var(--text-secondary)]">
+          EnduranceIQ computes training impulse (TRIMP) per session using the Banister formula — either
+          the full Karvonen heart-rate-reserve version when resting HR is provided, or an HR-max-only
+          approximation otherwise. The sex-specific exponential weighting (Banister 1991) reflects
+          physiological differences in cardiovascular response to exercise intensity.
+          Sessions are bucketed using r-value thresholds: easy (r &lt; 0.74), moderate (0.74–0.84),
+          hard (≥ 0.84).
+        </p>
+        <p className="mt-4 font-sans text-[13px] italic text-[var(--text-muted)]">
+          These load-share metrics are currently computed in the background (shadow mode). They will
+          replace the time-based display after threshold tuning in Phase 1.4.
+        </p>
+        <ul className="mt-4 list-none font-sans text-[14px] text-[var(--text-secondary)]">
+          <RefItem><CitationLink id="banister_1991" /></RefItem>
+          <RefItem><CitationLink id="seiler_kjerland_2006" /></RefItem>
+          <RefItem><CitationLink id="treff_2019" /></RefItem>
+          <RefItem><CitationLink id="stoggl_sperlich_2014" /></RefItem>
+          <RefItem><CitationLink id="casado_2022" /></RefItem>
         </ul>
       </section>
 
@@ -123,8 +178,8 @@ export default function LearnPage() {
           EnduranceIQ highlights narrowly spaced resistance-plus-interval stacking scenarios surfaced via deterministic timestamps rather than subjective readiness guesses.
         </p>
         <ul className="mt-4 list-none font-sans text-[14px] text-[var(--text-secondary)]">
-          <Ref label="Fyfe et al. (2014)" doi="10.1007/s40279-013-0131-5" />
-          <Ref label="Wilson et al. (2012)" doi="10.1519/JSC.0b013e3182429f27" />
+          <RefItem><CitationLink id="fyfe_2014" /></RefItem>
+          <RefItem><CitationLink id="wilson_2012" /></RefItem>
         </ul>
       </section>
 
@@ -134,9 +189,67 @@ export default function LearnPage() {
           Programmable lifting prescriptions referencing plyometrics, heavy compounds, and injury-prevention circuits arrive alongside roadmap integrations tying biomechanical weaknesses to prescription tweaks—planned downstream phases populate richer workout widgets referencing citations similar to running insights below.
         </p>
         <ul className="mt-4 list-none font-sans text-[14px] text-[var(--text-secondary)]">
-          <Ref label="Blagrove et al. (2018)" doi="10.3389/fphys.2018.00971" />
-          <Ref label="Beattie et al. (2017)" doi="10.1519/JSC.0000000000001949" />
+          <RefItem><CitationLink id="blagrove_2018" /></RefItem>
+          <RefItem><CitationLink id="beattie_2017" /></RefItem>
         </ul>
+      </section>
+
+      <section id="strength-methodology" className="mt-14 scroll-mt-24 border-t border-[var(--border)] pt-12">
+        <h2 className="font-sans text-[17px] font-semibold">Strength recommendations: methodology and research</h2>
+        <p className="mt-3 font-sans text-[15px] leading-relaxed text-[var(--text-secondary)]">
+          Each running pattern maps to a specific strength emphasis. The table below documents every pattern,
+          its prescribed emphasis, the training rationale, and the supporting research. This section is intended
+          for coach review before the feature goes wide.
+        </p>
+
+        <div className="mt-6 space-y-8">
+          <StrengthPattern
+            pattern="Low easy-zone load share (&lt;60% TRIMP in Z1–2)"
+            emphasis="Single-leg economy + posterior chain"
+            why="Better running economy makes Zone 2 pace easier to sustain at lower HR, gradually shifting load share toward easy zones without dropping volume."
+            evidence="2–4% running economy improvement after 8 weeks of heavy/explosive strength."
+            citationId="beattie_2017"
+            secondaryCitationId="blagrove_2018"
+          />
+          <StrengthPattern
+            pattern="Low cadence on intervals (&lt;168 spm)"
+            emphasis="Plyometric + single-leg economy"
+            why="Ground-contact time determines cadence ceiling. Plyometric training shortens ground contact and improves the stretch-shortening cycle."
+            evidence="Plyometric training improves running economy and ground contact mechanics."
+            citationId="saunders_2006"
+          />
+          <StrengthPattern
+            pattern="Long run HR drift (final third vs first third)"
+            emphasis="Posterior chain + core stability"
+            why="Late-race HR drift with pace decline indicates fatigue in the posterior chain and trunk stabilisers — key muscles for maintaining form when tired."
+            evidence="Posterior chain strength reduces hamstring injury risk and maintains running mechanics under fatigue."
+            citationId="bourne_2017"
+            secondaryCitationId="blagrove_2018"
+          />
+          <StrengthPattern
+            pattern="Interference window (High severity)"
+            emphasis="Mobility only"
+            why="A high-severity interference finding means strength work preceded a quality run within the acute neuromuscular recovery window. Adding more load would compound the problem."
+            evidence="Strength performed before quality running reduces neuromuscular quality of the run."
+            citationId="fyfe_2014"
+            secondaryCitationId="wilson_2012"
+          />
+          <StrengthPattern
+            pattern="Taper or high load ratio (&gt;1.3)"
+            emphasis="Maintenance (25–30 min)"
+            why="During a taper or elevated-load week, the goal is to maintain neuromuscular readiness without adding new fatigue. A short maintenance block achieves this."
+            evidence="Taper strategies that maintain stimulus while reducing volume preserve or improve performance."
+            citationId="mujika_2010"
+          />
+          <StrengthPattern
+            pattern="Default (no specific pattern detected)"
+            emphasis="Single-leg economy + posterior chain + core stability"
+            why="In a normal training week with no detected running weaknesses, a well-rounded lower-body session addresses the most common injury-risk areas for runners."
+            evidence="Strength training reduces running injury rates and improves economy in recreational marathon runners."
+            citationId="beattie_2017"
+            secondaryCitationId="blagrove_2018"
+          />
+        </div>
       </section>
 
       <section id="session-classification" className="mt-14 scroll-mt-24 border-t border-[var(--border)] pt-12">

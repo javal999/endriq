@@ -10,9 +10,13 @@ export async function middleware(request: NextRequest) {
     "/api/strava/callback",
     "/api/share",
     "/api/coros/status",
+    "/api/coros/callback",
   ];
 
   const pathname = request.nextUrl.pathname;
+
+  // Root landing page is public; authenticated visitors redirect to /dashboard inside page.tsx
+  if (pathname === "/") return NextResponse.next();
   const isPublic = publicPaths.some(
     (p) => pathname === p || pathname.startsWith(`${p}/`),
   );

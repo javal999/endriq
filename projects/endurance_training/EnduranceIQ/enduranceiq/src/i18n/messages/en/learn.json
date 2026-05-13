@@ -1,0 +1,15 @@
+{
+  "title": "How EnduranceIQ works",
+  "subtitle": "A reference guide to the methods embedded in your weekly report—structured metrics first, evidence-linked findings second. Nothing here substitutes clinical assessment or coach-written programming.",
+  "toc": "On this page",
+  "sections": {
+    "methodology": "Overview & narratives",
+    "intensity": "Intensity distribution",
+    "load": "Training load (acute/chronic)",
+    "zones": "Heart rate zones",
+    "concurrent": "Concurrent training & interference windows",
+    "strength": "Strength for runners",
+    "classification": "Session classification"
+  },
+  "back": "← Home"
+}

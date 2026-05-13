@@ -3,9 +3,17 @@
 import { useState } from "react";
 import type { BadgeTone } from "@/lib/report/model";
 
+type StructuredHint = {
+  observation?: string;
+  comparison?: string;
+  suggestion?: string;
+  status_explanation?: string;
+};
+
 export function SessionsTableWithHints({
   sessions,
   explanations,
+  structured,
 }: {
   sessions: Array<{
     workoutId: string;
@@ -17,6 +25,7 @@ export function SessionsTableWithHints({
     tone: BadgeTone;
   }>;
   explanations: Record<string, string>;
+  structured?: Record<string, StructuredHint>;
 }) {
   const [openId, setOpenId] = useState<string | null>(null);
 
@@ -25,33 +34,18 @@ export function SessionsTableWithHints({
       <table className="w-full min-w-[520px] border-collapse text-left text-[14px]">
         <thead>
           <tr className="border-b border-[var(--border)] font-sans text-[11px] font-medium uppercase tracking-wide text-[var(--text-muted)]">
-            <th scope="col" className="px-4 py-2">
-              Date
-            </th>
-            <th scope="col" className="px-4 py-2">
-              Type
-            </th>
-            <th scope="col" className="px-4 py-2">
-              Distance
-            </th>
-            <th scope="col" className="px-4 py-2">
-              Avg HR
-            </th>
-            <th scope="col" className="px-4 py-2 text-right">
-              Status
-            </th>
-            <th scope="col" className="px-4 py-2 text-right text-[10px] font-normal normal-case">
-              Why
-            </th>
+            <th scope="col" className="px-4 py-2">Date</th>
+            <th scope="col" className="px-4 py-2">Type</th>
+            <th scope="col" className="px-4 py-2">Distance</th>
+            <th scope="col" className="px-4 py-2">Avg HR</th>
+            <th scope="col" className="px-4 py-2 text-right">Status</th>
+            <th scope="col" className="px-4 py-2 text-right text-[10px] font-normal normal-case">Why</th>
           </tr>
         </thead>
         <tbody className="text-[var(--text-secondary)]">
           {sessions.length === 0 ? (
             <tr>
-              <td
-                colSpan={6}
-                className="px-4 py-6 text-center font-sans text-[13px] text-[var(--text-muted)]"
-              >
+              <td colSpan={6} className="px-4 py-6 text-center font-sans text-[13px] text-[var(--text-muted)]">
                 No sessions in this window.
               </td>
             </tr>
@@ -61,12 +55,9 @@ export function SessionsTableWithHints({
                 key={row.workoutId}
                 row={row}
                 explanation={explanations[row.workoutId] ?? ""}
+                hint={structured?.[row.workoutId]}
                 open={openId === row.workoutId}
-                onToggle={() =>
-                  setOpenId((cur) =>
-                    cur === row.workoutId ? null : row.workoutId,
-                  )
-                }
+                onToggle={() => setOpenId((cur) => cur === row.workoutId ? null : row.workoutId)}
               />
             ))
           )}
@@ -79,6 +70,7 @@ export function SessionsTableWithHints({
 function SessionBlock({
   row,
   explanation,
+  hint,
   open,
   onToggle,
 }: {
@@ -92,6 +84,7 @@ function SessionBlock({
     tone: BadgeTone;
   };
   explanation: string;
+  hint?: StructuredHint;
   open: boolean;
   onToggle: () => void;
 }) {
@@ -101,6 +94,8 @@ function SessionBlock({
       : row.tone === "warn"
         ? "bg-[rgba(184,122,10,0.08)] text-[var(--status-warn)]"
         : "bg-[rgba(196,75,63,0.06)] text-[var(--status-bad)]";
+
+  const hasStructured = hint && (hint.observation || hint.comparison || hint.suggestion || hint.status_explanation);
 
   return (
     <>
@@ -112,9 +107,7 @@ function SessionBlock({
         <td className="px-4 py-3 font-mono text-[13px]">{row.distanceLabel}</td>
         <td className="px-4 py-3 font-mono text-[13px]">{row.hrLabel}</td>
         <td className="px-4 py-3 text-right">
-          <span
-            className={`inline-flex items-center gap-2 rounded-sm px-2 py-1 font-sans text-[12px] font-medium ${badge}`}
-          >
+          <span className={`inline-flex items-center gap-2 rounded-sm px-2 py-1 font-sans text-[12px] font-medium ${badge}`}>
             <span className="size-1.5 rounded-full bg-current" aria-hidden />
             {row.statusLabel}
           </span>
@@ -132,11 +125,39 @@ function SessionBlock({
       </tr>
       {open ? (
         <tr className="border-b border-[var(--surface-raised)] bg-[rgba(46,94,78,0.04)]">
-          <td colSpan={6} className="px-4 pb-4 pt-1 font-sans text-[13px] leading-relaxed text-[var(--text-secondary)]">
-            {explanation || "No explanation available for this session."}
+          <td colSpan={6} className="px-4 pb-4 pt-2">
+            {hasStructured ? (
+              <StructuredPanel hint={hint} />
+            ) : (
+              <p className="font-sans text-[13px] leading-relaxed text-[var(--text-secondary)]">
+                {explanation || "No explanation available for this session."}
+              </p>
+            )}
           </td>
         </tr>
       ) : null}
     </>
+  );
+}
+
+function StructuredPanel({ hint }: { hint: StructuredHint }) {
+  const fields: { label: string; value: string | undefined }[] = [
+    { label: "Observation", value: hint.observation },
+    { label: "Comparison", value: hint.comparison },
+    { label: "Suggestion", value: hint.suggestion },
+    { label: "Why this status", value: hint.status_explanation },
+  ];
+
+  return (
+    <dl className="grid gap-3">
+      {fields.map(({ label, value }) =>
+        value ? (
+          <div key={label} className="grid grid-cols-[130px_1fr] gap-2 font-sans text-[13px]">
+            <dt className="italic text-[var(--text-muted)]">{label}:</dt>
+            <dd className="leading-relaxed text-[var(--text-secondary)]">{value}</dd>
+          </div>
+        ) : null,
+      )}
+    </dl>
   );
 }

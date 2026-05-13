@@ -85,10 +85,17 @@ export function intensityUserPrompt(b: LlmWeeklyBundle): string {
 
 export function sessionsUserPrompt(b: LlmWeeklyBundle): string {
   return [
-    "Here is JSON describing each workout row id and its computed status label.",
-    "Return ONLY a JSON array. Each element: {\"workout_id\": \"<uuid>\", \"explanation\": \"...\"}",
-    "Cover every workout_id exactly once. One short paragraph per workout.",
-    "Do not prescribe training plans or next workouts.",
+    "Here is JSON describing each workout and its metrics. Some rows include recent_same_type: prior sessions of the same type for comparison.",
+    "",
+    "Return ONLY a JSON array. Each element must have exactly these fields:",
+    '  "workout_id": string (copy from input)',
+    '  "explanation": string (one paragraph — kept for backwards compat)',
+    '  "observation": string (1 sentence: what the data shows for THIS session — HR, distance, label fit)',
+    '  "comparison": string (1 sentence: how this compares to recent same-type sessions, or "First [type] on record." if none)',
+    '  "suggestion": string (1 sentence: one concrete tweak for next time this session type occurs)',
+    '  "status_explanation": string (1 sentence: why the status badge is good/warn/bad)',
+    "",
+    "Cover every workout_id exactly once. Do not prescribe training plans or tomorrow's workouts.",
     "",
     b.sessionLedgerJson,
   ].join("\n");

@@ -1,0 +1,26 @@
+{
+  "nav": {
+    "home": "Home",
+    "weeklyReport": "Laporan mingguan",
+    "learn": "Pelajari",
+    "settings": "Pengaturan",
+    "signIn": "Masuk",
+    "support": "Dukung"
+  },
+  "locale": {
+    "en": "EN",
+    "id": "ID",
+    "switchTo": "Ganti bahasa"
+  },
+  "footer": {
+    "builtBy": "Dibuat dengan ❤️ oleh levitations"
+  },
+  "actions": {
+    "save": "Simpan",
+    "saving": "Menyimpan…",
+    "continue": "Lanjut",
+    "loading": "Memuat…",
+    "dismiss": "Tutup"
+  },
+  "disclaimer": "Ini cuma info kebugaran umum, bukan advice medis. Konsultasi sama profesional kesehatan untuk masalah medis dan sama coach beneran untuk program latihan."
+}

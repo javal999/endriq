@@ -1,6 +1,8 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { LlmFeedbackButtons } from "@/components/llm-feedback-buttons";
+import { ProfileCompletenessBanner } from "@/components/profile-completeness-banner";
+import { TrendSparklines } from "@/components/trend-sparklines";
 import { ShareWeeklyButton } from "@/components/share-weekly-button";
 import { SessionsTableWithHints } from "@/components/sessions-table-with-hints";
 import { StrengthRecommendation } from "@/components/strength-recommendation";
@@ -66,9 +68,15 @@ export function WeeklyReportView({
     `Zones estimated from observed max HR of ${model.intensity.observedMaxHr} bpm. A lactate threshold test would provide more accurate zones.`;
 
   const sessionHints = model.llm?.sessionExplanations ?? {};
+  const sessionStructured = model.llm?.sessionStructured ?? {};
 
   return (
     <div className="mx-auto max-w-5xl px-5 pb-16 pt-10 md:px-12 md:pt-12">
+      {athleteId !== "demo" && (model.missingProfileFields?.length ?? 0) > 0 && (
+        <div className="mb-6">
+          <ProfileCompletenessBanner missingFields={model.missingProfileFields!} />
+        </div>
+      )}
       {model.emptyWeek ? (
         <p className="mb-6 rounded border border-[var(--border)] bg-[var(--surface)] p-4 text-sm text-[var(--text-secondary)]">
           No workouts for this week yet.{" "}
@@ -145,7 +153,11 @@ export function WeeklyReportView({
         />
       </section>
 
-      <WeeklyAnalysisCard model={model} />
+      {model.trend && (
+        <TrendSparklines trend={model.trend} currentWeekStart={weekStart} />
+      )}
+
+      <WeeklyAnalysisCard model={model} hrRestMissing={model.hrRestMissing} />
       {model.llm?.weeklyNarrativeFromApi && (
         <LlmFeedbackButtons weekStart={weekStart} promptType="weekly_analysis" />
       )}
@@ -233,6 +245,7 @@ export function WeeklyReportView({
         <SessionsTableWithHints
           sessions={model.sessions}
           explanations={sessionHints}
+          structured={sessionStructured}
         />
       </section>
 
@@ -262,7 +275,11 @@ export function WeeklyReportView({
       </section>
 
       {model.strength ? (
-        <StrengthRecommendation recommendation={model.strength} />
+        model.strengthOptIn ? (
+          <StrengthRecommendation recommendation={model.strength} raceDateMissing={model.raceDateMissing} />
+        ) : (
+          <StrengthPlaceholder />
+        )
       ) : null}
 
       <footer className="mt-14 flex flex-col gap-4 border-t border-[var(--border)] pt-8 md:flex-row md:items-center md:justify-between">
@@ -274,6 +291,28 @@ export function WeeklyReportView({
         <ShareWeeklyButton athleteId={athleteId} weekStart={weekStart} />
       </footer>
     </div>
+  );
+}
+
+function StrengthPlaceholder() {
+  return (
+    <section className="mt-14" aria-labelledby="strength-placeholder-heading">
+      <h2 id="strength-placeholder-heading" className="mb-4 font-sans text-[15px] font-semibold">
+        Strength recommendation
+      </h2>
+      <div className="rounded border border-[var(--border)] bg-[var(--surface)] p-6 text-[14px] leading-relaxed text-[var(--text-secondary)]">
+        Strength recommendations are pending review by a qualified S&amp;C coach before going wide.
+        If you want to try the current version (evidence-informed but not coach-reviewed), enable{" "}
+        <Link href="/settings#experimental" className="text-[var(--accent)] underline underline-offset-2">
+          &ldquo;Show experimental strength recommendations&rdquo; in Settings
+        </Link>
+        . See the{" "}
+        <Link href="/learn#strength-methodology" className="text-[var(--accent)] underline underline-offset-2">
+          methodology page
+        </Link>{" "}
+        for the research we&apos;re basing them on.
+      </div>
+    </section>
   );
 }
 

@@ -59,7 +59,20 @@ export function parseSessionStatusesJson(
       if (!allowedIds.has(id)) continue;
       const v = validateExplanationCopy(explanation);
       if (!v.ok) continue;
-      out.push({ workout_id: id, explanation: explanation.trim() });
+
+      const observation = pickStr(row, ["observation"]) ?? undefined;
+      const comparison = pickStr(row, ["comparison"]) ?? undefined;
+      const suggestion = pickStr(row, ["suggestion"]) ?? undefined;
+      const statusExplanation = pickStr(row, ["status_explanation", "statusExplanation"]) ?? undefined;
+
+      out.push({
+        workout_id: id,
+        explanation: explanation.trim(),
+        ...(observation ? { observation: observation.trim() } : {}),
+        ...(comparison ? { comparison: comparison.trim() } : {}),
+        ...(suggestion ? { suggestion: suggestion.trim() } : {}),
+        ...(statusExplanation ? { status_explanation: statusExplanation.trim() } : {}),
+      });
     }
     return out.length ? out : null;
   } catch {

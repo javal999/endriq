@@ -1,4 +1,5 @@
 import { completeAnthropic } from "@/lib/llm/client";
+import { translateToBahasaCasual } from "@/lib/llm/translate";
 import {
   intensityExplanationFallback,
   sessionStaticExplanation,
@@ -109,6 +110,10 @@ export type LlmPackForUpsert = {
   llm_session_statuses: LlmSessionStatusRow[];
   /** True when the three-part weekly narrative was parsed from Haiku output (not rules-only fallback). */
   llm_weekly_from_api: boolean;
+  /** Bahasa Indonesia translations (only set when athlete.preferred_locale === "id"). */
+  llm_weekly_analysis_id?: string;
+  llm_intensity_explanation_id?: string;
+  llm_session_statuses_id?: LlmSessionStatusRow[];
   audits: LlmAuditInsert[];
 };
 
@@ -282,11 +287,43 @@ export async function runWeeklyLlms(
     },
   );
 
+  // Translate-after pass for Bahasa users.
+  // English source is the canonical safety surface; translation gets a lighter check (length-only).
+  let llm_weekly_analysis_id: string | undefined;
+  let llm_intensity_explanation_id: string | undefined;
+  let llm_session_statuses_id: LlmSessionStatusRow[] | undefined;
+
+  if (bundle.preferredLocale === "id") {
+    try {
+      const [wTr, iTr, sTrs] = await Promise.all([
+        translateToBahasaCasual(JSON.stringify(weeklySections)).catch(() => null),
+        translateToBahasaCasual(intensityText).catch(() => null),
+        Promise.all(
+          repairedSessions.map(async (row) => {
+            const tr = await translateToBahasaCasual(row.explanation).catch(() => null);
+            return tr && tr.text.length > 10
+              ? { workout_id: row.workout_id, explanation: tr.text }
+              : row;
+          }),
+        ),
+      ]);
+
+      if (wTr && wTr.text.length > 20) llm_weekly_analysis_id = wTr.text;
+      if (iTr && iTr.text.length > 10) llm_intensity_explanation_id = iTr.text;
+      llm_session_statuses_id = sTrs;
+    } catch {
+      // Non-fatal — fall back to English display
+    }
+  }
+
   return {
     llm_weekly_analysis: JSON.stringify(weeklySections),
     llm_intensity_explanation: intensityText,
     llm_session_statuses: repairedSessions,
     llm_weekly_from_api: weeklyFromApi,
+    llm_weekly_analysis_id,
+    llm_intensity_explanation_id,
+    llm_session_statuses_id,
     audits,
   };
 }

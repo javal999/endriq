@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
   recommendStrengthDays,
-  selectSessionTemplate,
+  buildStrengthMenu,
 } from "@/lib/analytics/strength-generator";
+
+const BASE_REF_MS = Date.parse("2026-05-12T23:59:59.999Z");
 
 describe("recommendStrengthDays", () => {
   it("blocks the day before interval and tempo", () => {
@@ -67,66 +69,102 @@ describe("recommendStrengthDays", () => {
   });
 });
 
-describe("selectSessionTemplate", () => {
-  const ref = Date.parse("2025-05-10T23:59:59.999Z");
+describe("buildStrengthMenu — pattern routing", () => {
+  const baseInput = {
+    runsWeek: [],
+    loadStatusWord: "Normal",
+    loadRatio: 1.0,
+    raceDateIso: null,
+    referenceMs: BASE_REF_MS,
+  };
 
-  it("returns C when race within 3 weeks", () => {
-    const t = selectSessionTemplate({
-      loadRatio: 1.0,
-      raceDateIso: "2025-05-24",
-      referenceMs: ref,
-      lastSessionId: "A",
-    });
-    expect(t.id).toBe("C");
+  it("interference_safe → mobility exercises, 1 day, ≤25 min", () => {
+    const menu = buildStrengthMenu({ primaryPattern: "interference_safe", ...baseInput });
+    expect(menu.pattern).toBe("interference_safe");
+    expect(menu.days).toHaveLength(1);
+    expect(menu.days[0].duration_min).toBeLessThanOrEqual(25);
   });
 
-  it("returns C when loadRatio > 1.3", () => {
-    const t = selectSessionTemplate({
-      loadRatio: 1.31,
-      raceDateIso: null,
-      referenceMs: ref,
-      lastSessionId: "A",
-    });
-    expect(t.id).toBe("C");
+  it("taper_or_high_load → maintenance exercises, 1 day, ≤30 min", () => {
+    const menu = buildStrengthMenu({ primaryPattern: "taper_or_high_load", ...baseInput });
+    expect(menu.pattern).toBe("taper_or_high_load");
+    expect(menu.days).toHaveLength(1);
+    expect(menu.days[0].duration_min).toBeLessThanOrEqual(30);
   });
 
-  it("returns A when loadRatio < 0.8", () => {
-    const t = selectSessionTemplate({
-      loadRatio: 0.79,
-      raceDateIso: null,
-      referenceMs: ref,
-      lastSessionId: "B",
-    });
-    expect(t.id).toBe("A");
+  it("low_cadence_intervals → at least 4 exercises with plyometric emphasis", () => {
+    const menu = buildStrengthMenu({ primaryPattern: "low_cadence_intervals", ...baseInput });
+    expect(menu.pattern).toBe("low_cadence_intervals");
+    const totalExercises = menu.days.reduce((s, d) => s + d.exercises.length, 0);
+    expect(totalExercises).toBeGreaterThanOrEqual(4);
+    const hasPlyo = menu.days.some((d) =>
+      d.exercises.some((e) => e.emphasis.includes("plyometric"))
+    );
+    expect(hasPlyo).toBe(true);
   });
 
-  it("returns B when lastSessionId is A", () => {
-    const t = selectSessionTemplate({
-      loadRatio: 1.0,
-      raceDateIso: null,
-      referenceMs: ref,
-      lastSessionId: "A",
-    });
-    expect(t.id).toBe("B");
+  it("default → at least 4 exercises", () => {
+    const menu = buildStrengthMenu({ primaryPattern: "default", ...baseInput });
+    const totalExercises = menu.days.reduce((s, d) => s + d.exercises.length, 0);
+    expect(totalExercises).toBeGreaterThanOrEqual(4);
   });
 
-  it("returns A when lastSessionId is B", () => {
-    const t = selectSessionTemplate({
-      loadRatio: 1.0,
-      raceDateIso: null,
-      referenceMs: ref,
-      lastSessionId: "B",
-    });
-    expect(t.id).toBe("A");
+  it("low_easy_load_share → at least 4 exercises with single_leg_economy or posterior_chain", () => {
+    const menu = buildStrengthMenu({ primaryPattern: "low_easy_load_share", ...baseInput });
+    const allExercises = menu.days.flatMap((d) => d.exercises);
+    const relevant = allExercises.filter((e) =>
+      e.emphasis.includes("single_leg_economy") || e.emphasis.includes("posterior_chain")
+    );
+    expect(relevant.length).toBeGreaterThanOrEqual(1);
+  });
+});
+
+describe("buildStrengthMenu — constraints", () => {
+  const baseInput = {
+    runsWeek: [],
+    loadStatusWord: "Normal",
+    loadRatio: 1.0,
+    raceDateIso: null,
+    referenceMs: BASE_REF_MS,
+  };
+
+  const ALL_PATTERNS = [
+    "interference_safe", "taper_or_high_load", "low_cadence_intervals",
+    "long_run_drift", "low_easy_load_share", "default",
+  ] as const;
+
+  it("no day exceeds 50 min for any pattern", () => {
+    for (const pattern of ALL_PATTERNS) {
+      const menu = buildStrengthMenu({ primaryPattern: pattern, ...baseInput });
+      for (const day of menu.days) {
+        expect(day.duration_min).toBeLessThanOrEqual(50);
+      }
+    }
   });
 
-  it("returns A when lastSessionId is null", () => {
-    const t = selectSessionTemplate({
-      loadRatio: 1.0,
-      raceDateIso: null,
-      referenceMs: ref,
-      lastSessionId: null,
-    });
-    expect(t.id).toBe("A");
+  it("each day has at least 4 exercises for non-mobility patterns", () => {
+    for (const pattern of ALL_PATTERNS) {
+      if (pattern === "interference_safe") continue; // mobility-only has fewer
+      const menu = buildStrengthMenu({ primaryPattern: pattern, ...baseInput });
+      for (const day of menu.days) {
+        expect(day.exercises.length).toBeGreaterThanOrEqual(4);
+      }
+    }
+  });
+
+  it("each day has at most 6 exercises for any pattern", () => {
+    for (const pattern of ALL_PATTERNS) {
+      const menu = buildStrengthMenu({ primaryPattern: pattern, ...baseInput });
+      for (const day of menu.days) {
+        expect(day.exercises.length).toBeLessThanOrEqual(6);
+      }
+    }
+  });
+
+  it("rationale is a non-empty string for all patterns", () => {
+    for (const pattern of ALL_PATTERNS) {
+      const menu = buildStrengthMenu({ primaryPattern: pattern, ...baseInput });
+      expect(menu.rationale.length).toBeGreaterThan(10);
+    }
   });
 });

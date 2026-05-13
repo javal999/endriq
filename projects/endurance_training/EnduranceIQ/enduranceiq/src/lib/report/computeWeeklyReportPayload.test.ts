@@ -142,7 +142,7 @@ describe("assembleWeeklyReportPayload", () => {
       allWorkouts: all,
       lastStrengthSessionId: null,
     });
-    expect(model.strength?.record.session_id).toMatch(/^[ABC]$/);
+    expect(model.strength?.pattern).toBeTruthy();
   });
 
   it("sets emptyWeek when there are no workouts in range", () => {

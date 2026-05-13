@@ -12,6 +12,8 @@ export async function completeAnthropic(args: {
   user: string;
   maxTokens?: number;
   outputSchema?: Record<string, unknown>;
+  /** Override the default SYSTEM_COACH prompt (used for translation calls). */
+  systemOverride?: string;
 }): Promise<{
   text: string;
   inputTokens: number;
@@ -26,7 +28,7 @@ export async function completeAnthropic(args: {
   const msg = await client.messages.create({
     model,
     max_tokens: args.maxTokens ?? 900,
-    system: SYSTEM_COACH,
+    system: args.systemOverride ?? SYSTEM_COACH,
     messages: [{ role: "user", content: args.user }],
     ...(args.outputSchema
       ? {
