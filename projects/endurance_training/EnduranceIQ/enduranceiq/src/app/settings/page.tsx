@@ -24,7 +24,7 @@ export default async function SettingsPage({ searchParams }: Props) {
 
   const { data: athleteRow } = await supabase
     .from("athletes")
-    .select("observed_max_hr, hr_rest, strength_recommendations_optin, roast_enabled")
+    .select("observed_max_hr, hr_rest, sex, goal_race_type, goal_race_date, goal_weekly_km, strength_recommendations_optin, roast_enabled")
     .eq("id", athleteId)
     .single();
 
@@ -110,16 +110,12 @@ export default async function SettingsPage({ searchParams }: Props) {
         </h2>
         <ProfileSettings
           athleteId={athleteId}
-          initialMaxHr={
-            typeof athleteRow?.observed_max_hr === "number"
-              ? athleteRow.observed_max_hr
-              : null
-          }
-          initialHrRest={
-            typeof athleteRow?.hr_rest === "number"
-              ? athleteRow.hr_rest
-              : null
-          }
+          initialMaxHr={typeof athleteRow?.observed_max_hr === "number" ? athleteRow.observed_max_hr : null}
+          initialHrRest={typeof athleteRow?.hr_rest === "number" ? athleteRow.hr_rest : null}
+          initialSex={typeof athleteRow?.sex === "string" ? athleteRow.sex : null}
+          initialRaceType={typeof athleteRow?.goal_race_type === "string" ? athleteRow.goal_race_type : null}
+          initialRaceDate={athleteRow?.goal_race_date ? String(athleteRow.goal_race_date) : null}
+          initialWeeklyKm={typeof athleteRow?.goal_weekly_km === "number" ? athleteRow.goal_weekly_km : null}
         />
       </section>
 
