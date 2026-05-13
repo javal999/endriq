@@ -23,7 +23,7 @@ export async function generateWeeklyAnalysis(
   const { data: existing } = await db
     .from("weekly_analyses")
     .select(
-      "llm_weekly_analysis, llm_intensity_explanation, llm_session_statuses, llm_weekly_from_api, share_id",
+      "llm_weekly_analysis, llm_intensity_explanation, llm_session_statuses, llm_weekly_from_api, llm_weekly_analysis_roast, share_id",
     )
     .eq("athlete_id", athleteId)
     .eq("week_start", weekStart)
@@ -81,6 +81,8 @@ export async function generateWeeklyAnalysis(
       llm_weekly_analysis_id: pack?.llm_weekly_analysis_id ?? null,
       llm_intensity_explanation_id: pack?.llm_intensity_explanation_id ?? null,
       llm_session_statuses_id: pack?.llm_session_statuses_id ?? null,
+      // Roast narrative (null if roast_enabled is false or safety skip)
+      llm_weekly_analysis_roast: pack?.llm_weekly_analysis_roast ?? existing?.llm_weekly_analysis_roast ?? null,
       generated_at: new Date().toISOString(),
     },
     { onConflict: "athlete_id,week_start" },
@@ -107,6 +109,7 @@ export async function generateWeeklyAnalysis(
     llm_intensity_explanation: effectiveIntensity,
     llm_session_statuses: effectiveSessions,
     llm_weekly_from_api,
+    llm_weekly_analysis_roast: pack?.llm_weekly_analysis_roast ?? existing?.llm_weekly_analysis_roast ?? null,
     llmDisabledReason: apiKey ? undefined : "no_api_key",
   });
 

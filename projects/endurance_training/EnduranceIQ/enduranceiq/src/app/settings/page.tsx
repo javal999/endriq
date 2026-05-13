@@ -5,6 +5,7 @@ import { ProfileSettings } from "./profile-settings";
 import { StravaActions } from "./strava-actions";
 import { CorosActions } from "./coros-actions";
 import { ExperimentalStrengthToggle } from "./experimental-strength-toggle";
+import { RoastToggle } from "./roast-toggle";
 
 type Props = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -23,7 +24,7 @@ export default async function SettingsPage({ searchParams }: Props) {
 
   const { data: athleteRow } = await supabase
     .from("athletes")
-    .select("observed_max_hr, hr_rest, strength_recommendations_optin")
+    .select("observed_max_hr, hr_rest, strength_recommendations_optin, roast_enabled")
     .eq("id", athleteId)
     .single();
 
@@ -194,6 +195,12 @@ export default async function SettingsPage({ searchParams }: Props) {
             athleteId={athleteId}
             initialOptin={Boolean(athleteRow?.strength_recommendations_optin)}
           />
+          <div className="mt-5 border-t border-[var(--border)] pt-5">
+            <RoastToggle
+              athleteId={athleteId}
+              initialEnabled={Boolean(athleteRow?.roast_enabled)}
+            />
+          </div>
         </div>
       </section>
 

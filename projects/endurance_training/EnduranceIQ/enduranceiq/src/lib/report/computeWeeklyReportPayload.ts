@@ -619,6 +619,7 @@ export function assembleWeeklyReportPayload(input: {
         typeof (athlete as { preferred_locale?: unknown }).preferred_locale === "string"
           ? ((athlete as { preferred_locale: string }).preferred_locale)
           : "en",
+      roastEnabled: Boolean((athlete as { roast_enabled?: unknown }).roast_enabled),
     };
   }
 
@@ -651,7 +652,7 @@ export async function computeWeeklyReportPayload(
   const { data: athlete, error: athErr } = await db
     .from("athletes")
     .select(
-      "id, observed_max_hr, goal_race_type, goal_race_date, goal_weekly_km, estimated_zone2_ceiling, hr_rest, sex, preferred_locale, strength_recommendations_optin",
+      "id, observed_max_hr, goal_race_type, goal_race_date, goal_weekly_km, estimated_zone2_ceiling, hr_rest, sex, preferred_locale, strength_recommendations_optin, roast_enabled",
     )
     .eq("id", athleteId)
     .maybeSingle();

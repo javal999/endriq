@@ -101,4 +101,37 @@ export function sessionsUserPrompt(b: LlmWeeklyBundle): string {
   ].join("\n");
 }
 
+/**
+ * Roast variant — same three sections, dry observational humour, not cruelty.
+ * Every factual claim and recommended action must match the non-sarcastic version.
+ */
+export function weeklyUserPromptRoast(b: LlmWeeklyBundle): string {
+  return [
+    "Using ONLY the structured facts below, write three short sections in a dry, slightly sarcastic tone.",
+    "Style: British observational humour. Roast the training patterns, not the person.",
+    "Every factual claim, citation, and recommended action MUST match what a non-sarcastic coach would say.",
+    "Length per section: 1 short paragraph.",
+    "",
+    "Return ONLY valid JSON with keys: went_well, needs_work, next_week (each a single paragraph string, plain text).",
+    "",
+    "Athlete context:",
+    `- goal_race_type: ${safeGoalRaceType(b.goalRaceType)}`,
+    `- goal_race_date: ${b.goalRaceDate ?? "unknown"}`,
+    `- goal_weekly_km: ${b.goalWeeklyKm ?? "unknown"}`,
+    `- weeks_of_history_approx: ${b.weeksOfDataApprox}`,
+    "",
+    "Week aggregates:",
+    `- total_distance_km: ${b.totalDistanceKm.toFixed(1)}`,
+    `- intensity_easy_pct: ${b.pctEasy}`,
+    `- intensity_hard_pct: ${b.pctHard}`,
+    `- load_ratio: ${b.loadRatio ?? "unknown"}`,
+    `- load_word: ${b.loadStatusWord}`,
+    "",
+    "Rule findings (titles + summaries):",
+    b.findingsText || "(none)",
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
+
 export { SYSTEM_COACH };

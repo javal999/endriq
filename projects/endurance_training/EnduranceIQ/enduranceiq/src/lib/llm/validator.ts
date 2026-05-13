@@ -25,6 +25,40 @@ const FLAG_PATTERNS: RegExp[] = [
   /\bcures?\b/i,
 ];
 
+/** Additional patterns that are only blocked in roast output (not coach copy). */
+const ROAST_BLOCK_PATTERNS: RegExp[] = [
+  /\bpathetic\b/i,
+  /\blazy\b/i,
+  /\bweak\b/i,
+  /\buseless\b/i,
+  /\bembarrassing\b/i,
+  /\bidiot\b/i,
+  /\bstupid\b/i,
+  /\bquit\b/i,
+  /\bgive up\b/i,
+];
+
+/**
+ * Validates roast output — runs BOTH the standard blocklist AND the
+ * roast-specific blocklist. Use for any text going into llm_weekly_analysis_roast.
+ */
+export function validateRoastOutput(text: string): {
+  ok: boolean;
+  reason?: string;
+} {
+  const base = validateLlmOutput(text);
+  if (!base.ok) return base;
+
+  const t = text.trim();
+  for (const pattern of ROAST_BLOCK_PATTERNS) {
+    if (pattern.test(t)) {
+      return { ok: false, reason: `roast_blocked:${pattern.source}` };
+    }
+  }
+
+  return { ok: true };
+}
+
 export function validateLlmOutput(text: string): {
   ok: boolean;
   reason?: string;

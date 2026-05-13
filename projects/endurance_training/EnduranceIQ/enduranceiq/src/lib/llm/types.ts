@@ -47,4 +47,6 @@ export interface LlmWeeklyBundle {
   workoutIds: string[];
   /** Athlete's preferred locale — drives translate-after pass for Bahasa users. */
   preferredLocale?: string;
+  /** Whether to generate the roast variant of the weekly narrative. */
+  roastEnabled?: boolean;
 }

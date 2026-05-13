@@ -1,0 +1,38 @@
+# Only the EnduranceIQ project belongs in this repo.
+# Everything else in the workspace is excluded.
+
+# Prototypes and other workspace projects
+Prototypes/
+AGENTS.md
+AGENTS\ 2.md
+CLAUDE.md
+CURSOR.md
+GOALS.md
+GOALS\ 2.md
+EXAMPLES.md
+README.md
+README.zh.md
+WORKSPACE-STRUCTURE.md
+Assets/
+Deliverables/
+Knowledge/
+Skills/
+Tasks/
+Tools/
+design.md
+design-prompt.md
+lyrics.txt
+tectonic
+node_modules/
+package.json
+package-lock.json
+
+# Vercel CLI state (should never be committed)
+.vercel
+
+# macOS
+.DS_Store
+.cursor/
+.cursorignore
+.pip_packages/
+.vscode/

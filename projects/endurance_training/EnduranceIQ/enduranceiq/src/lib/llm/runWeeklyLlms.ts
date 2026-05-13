@@ -13,13 +13,14 @@ import {
   intensityUserPrompt,
   sessionsUserPrompt,
   weeklyUserPrompt,
+  weeklyUserPromptRoast,
 } from "@/lib/llm/prompts";
 import type {
   LlmSessionStatusRow,
   LlmWeeklyBundle,
   LlmWeeklySections,
 } from "@/lib/llm/types";
-import { validateLlmOutput } from "@/lib/llm/validator";
+import { validateLlmOutput, validateRoastOutput } from "@/lib/llm/validator";
 import type { WeeklyReportModel } from "@/lib/report/model";
 
 const WEEKLY_SECTIONS_SCHEMA: Record<string, unknown> = {
@@ -114,6 +115,8 @@ export type LlmPackForUpsert = {
   llm_weekly_analysis_id?: string;
   llm_intensity_explanation_id?: string;
   llm_session_statuses_id?: LlmSessionStatusRow[];
+  /** Roast variant (only set when athlete.roast_enabled === true and no High-severity safety finding). */
+  llm_weekly_analysis_roast?: string;
   audits: LlmAuditInsert[];
 };
 
@@ -356,6 +359,63 @@ export async function runWeeklyLlms(
     }
   }
 
+  // Roast generation — skipped when roast_enabled is false OR a High-severity safety finding fired.
+  let llm_weekly_analysis_roast: string | undefined;
+
+  const hasHighSafetyFinding = baseModel.findings.some(
+    (f) =>
+      f.severity === "High" &&
+      /interference|spike|stop/i.test(f.title),
+  );
+
+  if (bundle.roastEnabled && !hasHighSafetyFinding) {
+    try {
+      const roastPrompt = weeklyUserPromptRoast(bundle);
+      const roastRes = await completeAnthropic({
+        user: roastPrompt,
+        maxTokens: 900,
+        outputSchema: WEEKLY_SECTIONS_SCHEMA,
+      }).catch(() => null);
+
+      if (roastRes) {
+        const parsed = parseWeeklySectionsJson(roastRes.text);
+        if (parsed) {
+          const validRoast =
+            validateRoastOutput(parsed.wentWell).ok &&
+            validateRoastOutput(parsed.needsWork).ok &&
+            validateRoastOutput(parsed.nextWeek).ok;
+          if (validRoast) {
+            llm_weekly_analysis_roast = JSON.stringify(parsed);
+          }
+        }
+        audits.push({
+          prompt_type: "weekly_roast",
+          input_tokens: roastRes.inputTokens,
+          output_tokens: roastRes.outputTokens,
+          model: roastRes.model,
+          output_text: truncateForAudit(roastRes.text),
+          input_data: { snapshot: auditInputSnapshot(bundle) },
+          validation_passed: Boolean(llm_weekly_analysis_roast),
+          validation_reason: llm_weekly_analysis_roast ? null : "roast_validation_failed",
+        });
+      }
+    } catch {
+      // Non-fatal — fall back to coach copy for roast tab
+    }
+  } else if (bundle.roastEnabled && hasHighSafetyFinding) {
+    // Safety skip — log it
+    audits.push({
+      prompt_type: "weekly_roast",
+      input_tokens: null,
+      output_tokens: null,
+      model: null,
+      output_text: null,
+      input_data: { snapshot: auditInputSnapshot(bundle) },
+      validation_passed: false,
+      validation_reason: "skipped_high_severity_safety",
+    });
+  }
+
   return {
     llm_weekly_analysis: JSON.stringify(weeklySections),
     llm_intensity_explanation: intensityText,
@@ -364,6 +424,7 @@ export async function runWeeklyLlms(
     llm_weekly_analysis_id,
     llm_intensity_explanation_id,
     llm_session_statuses_id,
+    llm_weekly_analysis_roast,
     audits,
   };
 }

@@ -12,6 +12,7 @@ export async function middleware(request: NextRequest) {
     "/api/share/",
     "/api/coros/status",
     "/api/coros/callback",
+    "/support",
   ];
 
   const pathname = request.nextUrl.pathname;

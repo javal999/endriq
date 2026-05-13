@@ -33,6 +33,7 @@ export async function Nav() {
                 { href: reportHref, label: t("nav.weeklyReport") },
                 { href: "/learn", label: t("nav.learn") },
                 { href: "/settings", label: t("nav.settings") },
+                { href: "/support", label: t("nav.support") },
               ].map((l) => (
                 <li key={l.href}>
                   <Link

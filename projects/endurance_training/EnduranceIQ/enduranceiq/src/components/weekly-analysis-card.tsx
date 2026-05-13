@@ -1,5 +1,51 @@
+"use client";
+
 import Link from "next/link";
-import type { WeeklyReportModel } from "@/lib/report/model";
+import { useState, useEffect } from "react";
+import type { WeeklyReportModel, LlmWeeklySectionsModel } from "@/lib/report/model";
+
+const TONE_COOKIE = "eiq_weekly_tone";
+
+function getStoredTone(): "coach" | "roast" {
+  if (typeof document === "undefined") return "coach";
+  const m = document.cookie.match(/(?:^|;\s*)eiq_weekly_tone=([^;]+)/);
+  return m?.[1] === "roast" ? "roast" : "coach";
+}
+
+function setToneCookie(tone: "coach" | "roast") {
+  document.cookie = `${TONE_COOKIE}=${tone};path=/;max-age=${60 * 60 * 24 * 365};samesite=lax`;
+}
+
+function Sections({ sections }: { sections: LlmWeeklySectionsModel }) {
+  return (
+    <div className="grid gap-6 md:grid-cols-3">
+      <div>
+        <h3 className="font-sans text-[12px] font-semibold uppercase tracking-wide text-[var(--status-good)]">
+          Went well
+        </h3>
+        <p className="mt-2 text-[14px] leading-relaxed text-[var(--text-secondary)]">
+          {sections.wentWell}
+        </p>
+      </div>
+      <div>
+        <h3 className="font-sans text-[12px] font-semibold uppercase tracking-wide text-[var(--status-warn)]">
+          Needs work
+        </h3>
+        <p className="mt-2 text-[14px] leading-relaxed text-[var(--text-secondary)]">
+          {sections.needsWork}
+        </p>
+      </div>
+      <div>
+        <h3 className="font-sans text-[12px] font-semibold uppercase tracking-wide text-[var(--accent)]">
+          Next week
+        </h3>
+        <p className="mt-2 text-[14px] leading-relaxed text-[var(--text-secondary)]">
+          {sections.nextWeek}
+        </p>
+      </div>
+    </div>
+  );
+}
 
 export function WeeklyAnalysisCard({
   model,
@@ -8,17 +54,33 @@ export function WeeklyAnalysisCard({
   model: WeeklyReportModel;
   hrRestMissing?: boolean;
 }) {
-  const sections =
-    model.llm?.weeklySections ?? {
-      wentWell:
-        "Sessions were logged for this week. Keep building consistent volume before drawing firm conclusions.",
-      needsWork:
-        model.findings.length > 0
-          ? model.findings.map((f) => f.title).join(". ")
-          : "No automated flags fired for this window.",
-      nextWeek:
-        "Repeat easy aerobic work with genuine recovery between stimulus sessions.",
-    };
+  const coachSections = model.llm?.weeklySections ?? {
+    wentWell:
+      "Sessions were logged for this week. Keep building consistent volume before drawing firm conclusions.",
+    needsWork:
+      model.findings.length > 0
+        ? model.findings.map((f) => f.title).join(". ")
+        : "No automated flags fired for this window.",
+    nextWeek:
+      "Repeat easy aerobic work with genuine recovery between stimulus sessions.",
+  };
+
+  const roastSections = model.llm?.roastSections ?? null;
+  const hasRoast = roastSections != null;
+
+  const [tone, setTone] = useState<"coach" | "roast">("coach");
+
+  // Hydrate from cookie after mount
+  useEffect(() => {
+    if (hasRoast) setTone(getStoredTone());
+  }, [hasRoast]);
+
+  function switchTone(t: "coach" | "roast") {
+    setTone(t);
+    setToneCookie(t);
+  }
+
+  const activeSections = tone === "roast" && roastSections ? roastSections : coachSections;
 
   const showAiBadge =
     model.llm?.weeklyNarrativeFromApi &&
@@ -27,12 +89,32 @@ export function WeeklyAnalysisCard({
   return (
     <section className="mt-10" aria-labelledby="weekly-analysis-heading">
       <div className="mb-4 flex items-start justify-between gap-4">
-        <h2
-          id="weekly-analysis-heading"
-          className="font-sans text-[15px] font-semibold"
-        >
-          This week
-        </h2>
+        <div className="flex items-center gap-3">
+          <h2
+            id="weekly-analysis-heading"
+            className="font-sans text-[15px] font-semibold"
+          >
+            This week
+          </h2>
+          {hasRoast && (
+            <div className="flex rounded border border-[var(--border)] bg-[var(--surface)] text-[11px] font-sans font-medium overflow-hidden">
+              {(["coach", "roast"] as const).map((t) => (
+                <button
+                  key={t}
+                  onClick={() => switchTone(t)}
+                  aria-pressed={tone === t}
+                  className={`px-2.5 py-1 capitalize transition-colors ${
+                    tone === t
+                      ? "bg-[var(--accent)] text-white"
+                      : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
+                  }`}
+                >
+                  {t}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
         {showAiBadge ? (
           <span
             className="shrink-0 rounded-sm bg-[rgba(46,94,78,0.08)] px-2 py-0.5 font-sans text-[11px] font-medium tracking-wide text-[var(--text-muted)]"
@@ -42,32 +124,10 @@ export function WeeklyAnalysisCard({
           </span>
         ) : null}
       </div>
-      <div className="grid gap-6 rounded-[20px] border border-[rgba(213,216,224,0.45)] bg-[rgba(250,251,253,0.68)] p-6 shadow-[0_20px_40px_-16px_rgba(16,19,26,0.12)] backdrop-blur-xl md:grid-cols-3 md:p-8">
-        <div>
-          <h3 className="font-sans text-[12px] font-semibold uppercase tracking-wide text-[var(--status-good)]">
-            Went well
-          </h3>
-          <p className="mt-2 text-[14px] leading-relaxed text-[var(--text-secondary)]">
-            {sections.wentWell}
-          </p>
-        </div>
-        <div>
-          <h3 className="font-sans text-[12px] font-semibold uppercase tracking-wide text-[var(--status-warn)]">
-            Needs work
-          </h3>
-          <p className="mt-2 text-[14px] leading-relaxed text-[var(--text-secondary)]">
-            {sections.needsWork}
-          </p>
-        </div>
-        <div className="md:col-span-1">
-          <h3 className="font-sans text-[12px] font-semibold uppercase tracking-wide text-[var(--accent)]">
-            Next week
-          </h3>
-          <p className="mt-2 text-[14px] leading-relaxed text-[var(--text-secondary)]">
-            {sections.nextWeek}
-          </p>
-        </div>
+      <div className="rounded-[20px] border border-[rgba(213,216,224,0.45)] bg-[rgba(250,251,253,0.68)] p-6 shadow-[0_20px_40px_-16px_rgba(16,19,26,0.12)] backdrop-blur-xl md:p-8">
+        <Sections sections={activeSections} />
       </div>
+
       {model.llm?.llmDisabledReason === "no_api_key" ? (
         <p className="mt-2 font-sans text-[11px] text-[var(--text-muted)]">
           LLM summaries are off until{" "}

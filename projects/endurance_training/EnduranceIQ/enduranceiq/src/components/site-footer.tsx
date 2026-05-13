@@ -54,6 +54,11 @@ export function SiteFooter() {
               Learn
             </Link>
           </li>
+          <li>
+            <Link href="/support" className="hover:text-[var(--accent)]">
+              Support EnduranceIQ
+            </Link>
+          </li>
         </ul>
       </div>
     </footer>

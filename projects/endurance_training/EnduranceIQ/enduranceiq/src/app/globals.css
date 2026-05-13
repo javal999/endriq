@@ -8,7 +8,7 @@
   --border: #d5d8e0;
   --text-primary: #10131a;
   --text-secondary: #565d6e;
-  --text-muted: #8a91a0;
+  --text-muted: #6B7180;  /* was #8a91a0 — passes WCAG AA on glass canvas */
   --accent: #2e5e4e;
   --status-good: #2e7d5b;
   --status-warn: #b87a0a;

@@ -81,6 +81,7 @@ export function enrichWeeklyReportWithLlm(
     llm_intensity_explanation?: string | null;
     llm_session_statuses?: unknown;
     llm_weekly_from_api?: boolean | null;
+    llm_weekly_analysis_roast?: string | null;
     llmDisabledReason?: "no_api_key";
   },
 ): WeeklyReportModel {
@@ -131,6 +132,7 @@ export function enrichWeeklyReportWithLlm(
       sessionStructured: Object.keys(sessionStructured).length > 0 ? sessionStructured : undefined,
       weeklyNarrativeFromApi: Boolean(row.llm_weekly_from_api),
       llmDisabledReason: row.llmDisabledReason,
+      roastSections: parseWeeklyStored(row.llm_weekly_analysis_roast) ?? undefined,
     },
   };
 }

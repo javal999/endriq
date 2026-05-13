@@ -86,6 +86,8 @@ export interface WeeklyReportModel {
     weeklyNarrativeFromApi?: boolean;
     /** Set when ANTHROPIC_API_KEY is missing so the UI can explain static copy. */
     llmDisabledReason?: "no_api_key";
+    /** Roast narrative — only present when athlete.roast_enabled === true. */
+    roastSections?: LlmWeeklySectionsModel;
   };
   /** Rule-based strength session + scheduling (`weekly_analyses.strength_recommendation`). */
   strength?: StrengthRecommendationModel | null;

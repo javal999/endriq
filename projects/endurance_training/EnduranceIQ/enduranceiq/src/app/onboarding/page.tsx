@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { Toast, useToast } from "@/components/toast";
 
 const RACE_TYPE_OPTIONS = [
   { value: "marathon", label: "Marathon" },
@@ -30,6 +31,7 @@ export default function OnboardingPage() {
   const [hrRest, setHrRest] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const toast = useToast();
 
   const raceDateRequired = goalRaceType !== "general_fitness";
 
@@ -66,6 +68,7 @@ export default function OnboardingPage() {
         return;
       }
 
+      toast.show("Saved — now connect Strava to start receiving reports.");
       router.replace("/settings");
       router.refresh();
     } finally {
@@ -74,6 +77,8 @@ export default function OnboardingPage() {
   }
 
   return (
+    <>
+    {toast.message && <Toast message={toast.message} onDismiss={toast.dismiss} />}
     <div className="mx-auto max-w-lg px-5 py-16 md:px-8">
       <p className="font-sans text-[11px] font-medium uppercase tracking-[0.08em] text-[var(--text-muted)]">
         Step 1 of 2
@@ -256,5 +261,6 @@ export default function OnboardingPage() {
         .
       </p>
     </div>
+    </>
   );
 }
