@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { getTranslations } from "next-intl/server";
 import { LlmFeedbackButtons } from "@/components/llm-feedback-buttons";
 import { ProfileCompletenessBanner } from "@/components/profile-completeness-banner";
 import { TrendSparklines } from "@/components/trend-sparklines";
@@ -31,7 +32,7 @@ function IntensityExplanationParagraph({ text }: { text: string }) {
   );
 }
 
-export function WeeklyReportView({
+export async function WeeklyReportView({
   model,
   athleteId,
   weekStart,
@@ -40,19 +41,21 @@ export function WeeklyReportView({
   athleteId: string;
   weekStart: string;
 }) {
+  const t = await getTranslations("report");
+
   const intensityBadge =
     model.intensity.verdict === "good"
-      ? { text: "On target", className: "bg-[rgba(46,125,91,0.08)] text-[var(--status-good)]" }
+      ? { text: t("intensity.verdict.good"), className: "bg-[rgba(46,125,91,0.08)] text-[var(--status-good)]" }
       : model.intensity.verdict === "warn"
         ? {
-            text: "Review",
+            text: t("intensity.verdict.warn"),
             className: "bg-[rgba(184,122,10,0.08)] text-[var(--status-warn)]",
           }
         : {
             text:
               model.intensity.pctEasy < 30 && model.intensity.pctHard > 50
-                ? "Missing easy volume"
-                : "Off target",
+                ? t("intensity.verdict.missingEasy")
+                : t("intensity.verdict.bad"),
             className: "bg-[rgba(196,75,63,0.06)] text-[var(--status-bad)]",
           };
 
@@ -79,7 +82,7 @@ export function WeeklyReportView({
       )}
       {model.emptyWeek ? (
         <p className="mb-6 rounded border border-[var(--border)] bg-[var(--surface)] p-4 text-sm text-[var(--text-secondary)]">
-          No workouts for this week yet.{" "}
+          {t("empty")}{" "}
           <Link href="/settings" className="text-[var(--accent)] underline">
             Connect Strava and sync
           </Link>{" "}
@@ -90,7 +93,7 @@ export function WeeklyReportView({
       <header className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
         <div>
           <h1 className="font-sans text-[22px] font-bold tracking-tight">
-            Weekly report
+            {t("title")}
           </h1>
           <p className="font-sans text-[13px] font-medium text-[var(--text-muted)]">
             {model.weekRangeLabel}
@@ -100,7 +103,7 @@ export function WeeklyReportView({
           <WeekNavLinks athleteId={athleteId} weekStart={weekStart} />
         ) : (
           <p className="font-sans text-[12px] text-[var(--text-muted)]">
-            Demo report · sample numbers
+            {t("demo")}
           </p>
         )}
       </header>
@@ -166,10 +169,10 @@ export function WeeklyReportView({
         <div className="mb-6 flex items-start justify-between gap-4">
           <div>
             <h2 id="intensity-heading" className="font-sans text-[15px] font-semibold">
-              Intensity distribution
+              {t("intensity.title")}
             </h2>
             <p className="mt-0.5 font-sans text-[12px] text-[var(--text-muted)]">
-              Weekly balance across all running time — separate from individual session quality
+              {t("intensity.subtitle")}
             </p>
           </div>
           <span
@@ -230,7 +233,7 @@ export function WeeklyReportView({
           <p className="mt-3 font-sans text-[11px] text-[var(--text-muted)]">
             Zones based on your observed max HR of {model.intensity.observedMaxHr} bpm using the 75/85% threshold method.{" "}
             <a href="/learn#heart-rate-zones" className="text-[var(--accent)] underline underline-offset-2">
-              How zones are calculated →
+              {t("intensity.zoneMethod")}
             </a>
           </p>
           {model.sessions.some(
@@ -251,38 +254,22 @@ export function WeeklyReportView({
       <section className="mt-12" aria-labelledby="sessions-heading">
         <div className="mb-4">
           <h2 id="sessions-heading" className="font-sans text-[15px] font-semibold">
-            Sessions
+            {t("sessions.title")}
           </h2>
           <p className="mt-0.5 font-sans text-[12px] text-[var(--text-muted)]">
-            Status reflects how well each session matched its intended effort level.
+            {t("sessions.subtitle")}
           </p>
         </div>
         <SessionsTableWithHints sessions={model.sessions} />
-        {/* unused hint vars kept for type-check compatibility */}
-        {/* Status legend */}
-        <div className="mt-3 flex flex-wrap gap-x-6 gap-y-1 font-sans text-[11px] text-[var(--text-muted)]">
-          <span className="flex items-center gap-1.5">
-            <span className="size-2 rounded-full bg-[var(--status-good)]" aria-hidden />
-            <strong className="font-medium text-[var(--text-secondary)]">Good</strong> — HR matched session type (easy run truly easy, hard run genuinely hard)
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="size-2 rounded-full bg-[var(--status-warn)]" aria-hidden />
-            <strong className="font-medium text-[var(--text-secondary)]">Watch</strong> — HR slightly outside expected range for this session type
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="size-2 rounded-full bg-[var(--status-bad)]" aria-hidden />
-            <strong className="font-medium text-[var(--text-secondary)]">Flag</strong> — HR significantly mismatched (e.g., easy run with high HR)
-          </span>
-        </div>
       </section>
 
       <section className="mt-14" aria-labelledby="findings-heading">
         <h2 id="findings-heading" className="mb-4 font-sans text-[15px] font-semibold">
-          What the data flagged
+          {t("findings.title")}
         </h2>
         {model.findings.length === 0 ? (
           <p className="rounded border border-[var(--border)] bg-[var(--surface)] p-6 font-sans text-[14px] text-[var(--text-secondary)]">
-            No rule triggers this week. Keep syncing; findings sharpen as weeks accrue.
+            {t("findings.empty")}
           </p>
         ) : (
           model.findings.map((f, i) => (

@@ -17,10 +17,12 @@
   },
   "intensity": {
     "title": "Intensity distribution",
+    "subtitle": "Weekly balance across all running time — separate from individual session quality",
     "easy": "Easy",
     "moderate": "Moderate",
     "hard": "Hard",
     "target": "Target",
+    "zoneMethod": "How zones are calculated →",
     "verdict": {
       "good": "On target",
       "warn": "Review",
@@ -37,12 +39,14 @@
   },
   "sessions": {
     "title": "Sessions",
+    "subtitle": "Status reflects how well each session matched its intended effort level.",
     "explain": "Explain",
     "hide": "Hide",
     "whyStatus": "Why this status:"
   },
   "findings": {
-    "title": "Findings",
+    "title": "What the data flagged",
+    "empty": "No rule triggers this week. Keep syncing; findings sharpen as weeks accrue.",
     "evidence": "Evidence:",
     "methodology": "Methodology"
   },

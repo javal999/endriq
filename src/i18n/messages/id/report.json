@@ -17,10 +17,12 @@
   },
   "intensity": {
     "title": "Distribusi intensitas",
+    "subtitle": "Keseimbangan mingguan dari total waktu lari — terpisah dari kualitas tiap sesi",
     "easy": "Easy",
     "moderate": "Moderate",
     "hard": "Hard",
     "target": "Target",
+    "zoneMethod": "Cara menghitung zone →",
     "verdict": {
       "good": "Sesuai target",
       "warn": "Perlu diperiksa",
@@ -37,12 +39,14 @@
   },
   "sessions": {
     "title": "Sesi",
+    "subtitle": "Status mencerminkan seberapa sesuai tiap sesi dengan level usaha yang seharusnya.",
     "explain": "Jelasin",
     "hide": "Sembunyiin",
     "whyStatus": "Kenapa status ini:"
   },
   "findings": {
-    "title": "Temuan",
+    "title": "Yang dideteksi dari data",
+    "empty": "Tidak ada temuan minggu ini. Terus sync; temuan makin tajam seiring bertambahnya data.",
     "evidence": "Bukti:",
     "methodology": "Metodologi"
   },

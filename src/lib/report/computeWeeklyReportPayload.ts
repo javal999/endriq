@@ -452,6 +452,7 @@ export function assembleWeeklyReportPayload(input: {
     raceDateMissing,
     missingProfileFields,
     strengthOptIn: Boolean((athlete as { strength_recommendations_optin?: unknown }).strength_recommendations_optin),
+    roastEnabled: Boolean((athlete as { roast_enabled?: unknown }).roast_enabled),
     summary: {
       distanceKm: emptyWeek ? "—" : distKm.toFixed(1),
       distanceMeta,
