@@ -86,8 +86,15 @@ export async function GET(_req: Request, segmentData: Props) {
   const base = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ?? "";
 
   if (athleteId === "demo") {
-    const model = buildDemoWeeklyReport(weekStart);
-    return cardResponse(shareSnapshotFromModel(model), host);
+    try {
+      const model = buildDemoWeeklyReport(weekStart);
+      const snap = shareSnapshotFromModel(model);
+      return cardResponse(snap, host);
+    } catch (e) {
+      const msg = e instanceof Error ? `demo_error: ${e.message}\n${e.stack?.slice(0, 500)}` : "demo_error";
+      console.error("[share/demo]", e);
+      return new Response(msg, { status: 500, headers: { "content-type": "text/plain" } });
+    }
   }
 
   if (!isAthleteUuid(athleteId)) {
