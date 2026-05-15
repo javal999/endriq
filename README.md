@@ -4,7 +4,7 @@ A smart second opinion on your marathon training. EnduranceIQ reads your
 watch data and tells you what you're doing wrong, why it matters, and
 what to change.
 
-**Live:** [endriq.vercel.app](https://endriq.vercel.app)
+**Live:** [endriq.levitations.id](https://endriq.levitations.id)
 
 > **Developers / contributors:** see [DEVELOPMENT.md](DEVELOPMENT.md)
 > for local setup, env vars, database migrations, and deployment.
@@ -81,13 +81,13 @@ links to update them in Settings.
 
 ### Evidence citations
 Every recommendation cites its source. All DOIs verified. Full
-methodology at [endriq.vercel.app/learn](https://endriq.vercel.app/learn).
+methodology at [endriq.levitations.id/learn](https://endriq.levitations.id/learn).
 
 ---
 
 ## Getting started
 
-1. **Sign up** at [endriq.vercel.app](https://endriq.vercel.app)
+1. **Sign up** at [endriq.levitations.id](https://endriq.levitations.id)
 2. **Complete onboarding** — race type, goal date, weekly km, sex,
    and optionally max HR and resting HR
 3. **Connect Strava** in Settings → Integrations
@@ -99,7 +99,7 @@ Reports refresh automatically via Strava webhook after the initial sync.
 
 ## Methodology
 
-Full write-up at [/learn](https://endriq.vercel.app/learn). Key sources:
+Full write-up at [/learn](https://endriq.levitations.id/learn). Key sources:
 
 - **Intensity distribution** — Seiler (2010); Stöggl & Sperlich (2014)
 - **Training load (ACWR)** — Gabbett (2016); Hulin et al. (2016)
@@ -118,4 +118,4 @@ training programming.
 ---
 
 *Built by [levitations](https://levitations.id) ·
-[Support EnduranceIQ](https://endriq.vercel.app/support)*
+[Support EnduranceIQ](https://endriq.levitations.id/support)*
