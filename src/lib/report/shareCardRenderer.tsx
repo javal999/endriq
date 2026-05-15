@@ -1,5 +1,4 @@
-/** @jsxRuntime automatic */
-/** @jsxImportSource react */
+import React from "react";
 import { ImageResponse } from "next/og";
 import type { ShareCardSnapshot } from "./shareCard";
 

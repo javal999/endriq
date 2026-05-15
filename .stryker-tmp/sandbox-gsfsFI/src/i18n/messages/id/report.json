@@ -1,0 +1,73 @@
+{
+  "title": "Laporan mingguan",
+  "demo": "Demo laporan · angka contoh",
+  "empty": "Belum ada workout minggu ini.",
+  "emptyLink": "Sambungin Strava dan sync",
+  "summary": {
+    "distance": "Jarak",
+    "sessions": "Sesi",
+    "time": "Waktu",
+    "load": "Training load"
+  },
+  "status": {
+    "normal": "Normal",
+    "elevated": "Elevated",
+    "spike": "Spike",
+    "low": "Low"
+  },
+  "intensity": {
+    "title": "Distribusi intensitas",
+    "subtitle": "Keseimbangan mingguan dari total waktu lari — terpisah dari kualitas tiap sesi",
+    "easy": "Easy",
+    "moderate": "Moderate",
+    "hard": "Hard",
+    "target": "Target",
+    "zoneMethod": "Cara menghitung zone →",
+    "verdict": {
+      "good": "Sesuai target",
+      "warn": "Perlu diperiksa",
+      "bad": "Di luar target",
+      "missingEasy": "Kurang easy volume"
+    }
+  },
+  "analysis": {
+    "title": "Minggu ini",
+    "wentWell": "Yang oke",
+    "needsWork": "Perlu diperbaiki",
+    "nextWeek": "Minggu depan",
+    "aiBadge": "AI"
+  },
+  "sessions": {
+    "title": "Sesi",
+    "subtitle": "Status mencerminkan seberapa sesuai tiap sesi dengan level usaha yang seharusnya.",
+    "explain": "Jelasin",
+    "hide": "Sembunyiin",
+    "whyStatus": "Kenapa status ini:"
+  },
+  "findings": {
+    "title": "Yang dideteksi dari data",
+    "empty": "Tidak ada temuan minggu ini. Terus sync; temuan makin tajam seiring bertambahnya data.",
+    "evidence": "Bukti:",
+    "methodology": "Metodologi"
+  },
+  "strength": {
+    "title": "Rekomendasi strength",
+    "thisWeek": "Minggu ini",
+    "whyExercises": "Kenapa latihan ini:",
+    "notMedical": "Ini cuma info kebugaran umum, bukan advice medis."
+  },
+  "accuracy": {
+    "noHrRest": "TRIMP dihitung tanpa resting HR — load aktual bisa beda ±10%.",
+    "addHrRest": "Tambahin resting HR lo →",
+    "noRaceDate": "Tambahin tanggal race lo di Pengaturan buat dapet taper-specific recommendations."
+  },
+  "share": {
+    "button": "Bagiin minggu ini",
+    "modal": {
+      "title": "Bagiin minggu latihan lo",
+      "desc": "Share ke Instagram Stories, Threads, atau simpan gambarnya.",
+      "copy": "Copy link",
+      "download": "Download gambar"
+    }
+  }
+}

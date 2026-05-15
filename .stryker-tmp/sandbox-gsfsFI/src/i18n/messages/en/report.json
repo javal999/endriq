@@ -1,0 +1,73 @@
+{
+  "title": "Weekly report",
+  "demo": "Demo report · sample numbers",
+  "empty": "No workouts for this week yet.",
+  "emptyLink": "Connect Strava and sync",
+  "summary": {
+    "distance": "Distance",
+    "sessions": "Sessions",
+    "time": "Time",
+    "load": "Training load"
+  },
+  "status": {
+    "normal": "Normal",
+    "elevated": "Elevated",
+    "spike": "Spike",
+    "low": "Low"
+  },
+  "intensity": {
+    "title": "Intensity distribution",
+    "subtitle": "Weekly balance across all running time — separate from individual session quality",
+    "easy": "Easy",
+    "moderate": "Moderate",
+    "hard": "Hard",
+    "target": "Target",
+    "zoneMethod": "How zones are calculated →",
+    "verdict": {
+      "good": "On target",
+      "warn": "Review",
+      "bad": "Off target",
+      "missingEasy": "Missing easy volume"
+    }
+  },
+  "analysis": {
+    "title": "This week",
+    "wentWell": "Went well",
+    "needsWork": "Needs work",
+    "nextWeek": "Next week",
+    "aiBadge": "AI"
+  },
+  "sessions": {
+    "title": "Sessions",
+    "subtitle": "Status reflects how well each session matched its intended effort level.",
+    "explain": "Explain",
+    "hide": "Hide",
+    "whyStatus": "Why this status:"
+  },
+  "findings": {
+    "title": "What the data flagged",
+    "empty": "No rule triggers this week. Keep syncing; findings sharpen as weeks accrue.",
+    "evidence": "Evidence:",
+    "methodology": "Methodology"
+  },
+  "strength": {
+    "title": "Strength recommendation",
+    "thisWeek": "This week",
+    "whyExercises": "Why these exercises:",
+    "notMedical": "This is general fitness information, not medical advice."
+  },
+  "accuracy": {
+    "noHrRest": "TRIMP calculated without resting HR — actual load may be ±10% off.",
+    "addHrRest": "Add your resting HR →",
+    "noRaceDate": "Add your race date in Settings to enable taper-specific recommendations."
+  },
+  "share": {
+    "button": "Share this week",
+    "modal": {
+      "title": "Share your training week",
+      "desc": "Share to Instagram Stories, Threads, or save the image.",
+      "copy": "Copy link",
+      "download": "Download image"
+    }
+  }
+}

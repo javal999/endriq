@@ -1,0 +1,41 @@
+{
+  "title": "Settings",
+  "profile": {
+    "title": "Profile",
+    "raceType": "What are you training for?",
+    "raceDate": "Race date",
+    "weeklyKm": "Weekly km target",
+    "sex": "Sex",
+    "maxHr": "Max heart rate",
+    "hrRest": "Resting heart rate",
+    "hrRestHelp": "Optional. Improves the accuracy of your training load calculations. Measure first thing in the morning, lying still.",
+    "sexHelp": "Used in the training load formula (Banister TRIMP). Affects calculation, not display.",
+    "save": "Save profile",
+    "saved": "Saved"
+  },
+  "connections": {
+    "title": "Data sources",
+    "strava": {
+      "title": "Strava",
+      "connect": "Connect Strava",
+      "disconnect": "Disconnect",
+      "sync": "Sync now",
+      "syncing": "Syncing…",
+      "connected": "Connected",
+      "lastSync": "Last sync",
+      "never": "Never synced"
+    },
+    "garmin": {
+      "title": "Garmin",
+      "hint": "If you have a Garmin, enable Strava sync in Garmin Connect (Settings → Connect → Strava). Your Garmin activities will flow through Strava into EnduranceIQ."
+    }
+  },
+  "banner": {
+    "hrRest": "Add your resting HR for more accurate training load calculations.",
+    "sex": "Your sex is missing — required for the load formula.",
+    "raceDate": "Add your race date to unlock taper recommendations.",
+    "weeklyKm": "Add your typical weekly km to calibrate load expectations.",
+    "maxHr": "Add your max HR (or let us estimate from 4+ weeks of data).",
+    "fixThis": "Fix this →"
+  }
+}
