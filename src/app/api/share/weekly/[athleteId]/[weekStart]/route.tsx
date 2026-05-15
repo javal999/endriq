@@ -21,8 +21,14 @@ export async function GET(_req: Request, segmentData: Props) {
 
   // Demo path: render directly, no redirect needed
   if (athleteId === "demo") {
-    const model = buildDemoWeeklyReport(weekStart);
-    return cardImageResponse(shareSnapshotFromModel(model), siteHost);
+    try {
+      const model = buildDemoWeeklyReport(weekStart);
+      return cardImageResponse(shareSnapshotFromModel(model), siteHost);
+    } catch (e) {
+      const msg = e instanceof Error ? `demo_share_failed: ${e.message}` : "demo_share_failed";
+      console.error("[share/demo]", e);
+      return new Response(msg, { status: 500 });
+    }
   }
 
   if (!isAthleteUuid(athleteId)) {
