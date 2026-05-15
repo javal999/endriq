@@ -4,7 +4,8 @@ import { getTranslations } from "next-intl/server";
 import { LlmFeedbackButtons } from "@/components/llm-feedback-buttons";
 import { ProfileCompletenessBanner } from "@/components/profile-completeness-banner";
 import { TrendSparklines } from "@/components/trend-sparklines";
-import { ShareWeeklyButton } from "@/components/share-weekly-button";
+// ShareWeeklyButton removed — share card endpoint has a known server error;
+// users can screenshot directly. Restore when share card is fixed.
 import { SessionsTableWithHints } from "@/components/sessions-table-with-hints";
 import { StrengthRecommendation } from "@/components/strength-recommendation";
 import { WeekNavLinks } from "@/components/week-nav-links";
@@ -302,7 +303,7 @@ export async function WeeklyReportView({
           observed max HR. Consult a healthcare professional for medical concerns and a
           qualified coach for training programming.
         </p>
-        <ShareWeeklyButton athleteId={athleteId} weekStart={weekStart} shareId={model.shareId} />
+        {/* Share button temporarily removed — share card image endpoint under repair */}
       </footer>
     </div>
   );
