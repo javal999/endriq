@@ -21,19 +21,23 @@ test.describe("Login page", () => {
     await expect(page).toHaveURL(/\/auth\/login/);
   });
 
-  test("open-redirect //evil.com — page stays on login, URL never contains evil.com", async ({ page }) => {
-    // Navigate with a malicious redirect parameter
+  test("open-redirect //evil.com — browser stays on app domain (not evil.com)", async ({ page }) => {
+    // The ?redirect=//evil.com query param is present in the URL bar (expected)
+    // but the browser hostname must remain on our domain — never navigate to evil.com
     await page.goto("/auth/login?redirect=//evil.com");
-    // The login page must render (not crash)
     await expect(page.getByLabel(/email/i)).toBeVisible();
-    // The browser URL must not contain evil.com
-    expect(page.url()).not.toContain("evil.com");
+    // Hostname must be our domain, not evil.com
+    const url = new URL(page.url());
+    expect(url.hostname).not.toBe("evil.com");
+    // Login form renders — page is functional, not crashed
+    await expect(page.getByRole("button", { name: /log in/i })).toBeVisible();
   });
 
-  test("open-redirect /\\evil.com — page stays on login", async ({ page }) => {
+  test("open-redirect sanitation — /\\evil.com stays on app domain", async ({ page }) => {
     await page.goto("/auth/login?redirect=%2F%5Cevil.com");
+    const url = new URL(page.url());
+    expect(url.hostname).not.toBe("evil.com");
     await expect(page.getByLabel(/email/i)).toBeVisible();
-    expect(page.url()).not.toContain("evil.com");
   });
 
   test("sign-up link navigates to signup page", async ({ page }) => {
