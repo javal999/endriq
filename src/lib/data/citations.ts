@@ -96,7 +96,7 @@ export const CITATIONS = {
     label: "Banister (1991)",
     doi: null,
     pubmed_id: null,
-    url: "https://scholar.google.com/scholar?q=Banister+1991+TRIMP+training+impulse",
+    url: "https://www.worldcat.org/title/physiological-testing-of-the-high-performance-athlete/oclc/23392155",
     strength: "Strong",
     note: "Original TRIMP formulation. Book chapter — no DOI.",
   },

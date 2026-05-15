@@ -5,11 +5,6 @@ import { enrichWeeklyReportWithLlm } from "@/lib/report/enrichWeeklyLlm";
 import { runWeeklyLlms } from "@/lib/llm/runWeeklyLlms";
 import type { WeeklyReportPayload } from "@/lib/report/computeWeeklyReportPayload";
 
-/**
- * Computes weekly analytics, upserts `weekly_analyses`, optionally runs server-side LLM
- * explanations once per week (cached on subsequent page loads), writes `llm_audit_log`.
- * Pass the server `createClient()` for logged-in flows (RLS). Use default admin for webhooks/OG.
- */
 export async function generateWeeklyAnalysis(
   athleteId: string,
   weekStart: string,
@@ -30,6 +25,8 @@ export async function generateWeeklyAnalysis(
     .maybeSingle();
 
   const hasStoredWeekly = Boolean(existing?.llm_weekly_analysis?.trim());
+  const roastEnabled = payload.llmBundle?.roastEnabled ?? false;
+  const roastMissing = roastEnabled && !existing?.llm_weekly_analysis_roast;
 
   const shouldRunLlm =
     apiKey &&
@@ -37,10 +34,16 @@ export async function generateWeeklyAnalysis(
     payload.llmBundle != null &&
     (force || !hasStoredWeekly);
 
-  let llm_weekly_analysis: string | null =
-    existing?.llm_weekly_analysis ?? null;
-  let llm_intensity_explanation: string | null =
-    existing?.llm_intensity_explanation ?? null;
+  // Run roast generation independently when roast is newly enabled on a cached week
+  const shouldRunRoastOnly =
+    apiKey &&
+    !payload.model.emptyWeek &&
+    payload.llmBundle != null &&
+    !shouldRunLlm &&
+    roastMissing;
+
+  let llm_weekly_analysis: string | null = existing?.llm_weekly_analysis ?? null;
+  let llm_intensity_explanation: string | null = existing?.llm_intensity_explanation ?? null;
   let llm_session_statuses: unknown = existing?.llm_session_statuses ?? [];
   let llm_weekly_from_api = Boolean(existing?.llm_weekly_from_api);
 
@@ -68,6 +71,21 @@ export async function generateWeeklyAnalysis(
       });
       if (logErr) console.error("[EnduranceIQ] llm_audit_log insert:", logErr);
     }
+  } else if (shouldRunRoastOnly && payload.llmBundle) {
+    // Roast was enabled after the weekly LLM already ran — generate only roast
+    pack = await runWeeklyLlms(
+      { ...payload.llmBundle, roastEnabled: true },
+      payload.model,
+    );
+    // Keep existing coach narratives; only take the roast output
+    pack = {
+      ...pack,
+      llm_weekly_analysis: llm_weekly_analysis ?? pack.llm_weekly_analysis,
+      llm_intensity_explanation: llm_intensity_explanation ?? pack.llm_intensity_explanation,
+      llm_session_statuses: Array.isArray(llm_session_statuses) && (llm_session_statuses as unknown[]).length > 0
+        ? (llm_session_statuses as typeof pack.llm_session_statuses)
+        : pack.llm_session_statuses,
+    };
   }
 
   const { error } = await db.from("weekly_analyses").upsert(
@@ -77,11 +95,9 @@ export async function generateWeeklyAnalysis(
       llm_intensity_explanation,
       llm_session_statuses,
       llm_weekly_from_api,
-      // Bahasa translations (null if athlete is English or translation failed)
       llm_weekly_analysis_id: pack?.llm_weekly_analysis_id ?? null,
       llm_intensity_explanation_id: pack?.llm_intensity_explanation_id ?? null,
       llm_session_statuses_id: pack?.llm_session_statuses_id ?? null,
-      // Roast narrative (null if roast_enabled is false or safety skip)
       llm_weekly_analysis_roast: pack?.llm_weekly_analysis_roast ?? existing?.llm_weekly_analysis_roast ?? null,
       generated_at: new Date().toISOString(),
     },
@@ -89,7 +105,6 @@ export async function generateWeeklyAnalysis(
   );
   if (error) throw error;
 
-  // For ID users, serve the translated narrative if available
   const locale = payload.llmBundle?.preferredLocale ?? "en";
   const effectiveWeekly =
     locale === "id" && pack?.llm_weekly_analysis_id
@@ -113,7 +128,6 @@ export async function generateWeeklyAnalysis(
     llmDisabledReason: apiKey ? undefined : "no_api_key",
   });
 
-  // Attach the share_id from the DB row (set by DB default on first insert)
   const shareId =
     typeof existing?.share_id === "string" ? existing.share_id : undefined;
 

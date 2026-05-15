@@ -180,30 +180,39 @@ export function WeeklyReportView({
         </div>
 
         <div className="rounded-[20px] border border-[rgba(213,216,224,0.45)] bg-[rgba(250,251,253,0.68)] p-8 shadow-[0_20px_40px_-16px_rgba(16,19,26,0.14)] backdrop-blur-xl backdrop-saturate-180">
-          <ZoneRow
-            label="Zone 1–2"
-            sub="Easy"
-            pct={model.intensity.pctEasy}
-            fillClass="bg-[var(--accent)]"
-            targetLeftPct={80}
-            targetLabel="target 80%"
-          />
-          <ZoneRow
-            label="Zone 3"
-            sub="Moderate"
-            pct={model.intensity.pctMod}
-            fillClass="bg-[var(--status-warn)]"
-            targetLeftPct={10}
-            targetLabel="~10%"
-          />
-          <ZoneRow
-            label="Zone 4–5"
-            sub="Hard"
-            pct={model.intensity.pctHard}
-            fillClass="bg-[var(--status-bad)] opacity-[0.85]"
-            targetLeftPct={10}
-            targetLabel="~10%"
-          />
+          {(() => {
+            const maxHr = model.intensity.observedMaxHr;
+            const easyTop = Math.round(maxHr * 0.75);
+            const modTop = Math.round(maxHr * 0.85);
+            return (
+              <>
+                <ZoneRow
+                  label="Zone 1–2"
+                  sub={`Easy · <${easyTop} bpm`}
+                  pct={model.intensity.pctEasy}
+                  fillClass="bg-[var(--accent)]"
+                  targetLeftPct={80}
+                  targetLabel="target 80%"
+                />
+                <ZoneRow
+                  label="Zone 3"
+                  sub={`Moderate · ${easyTop}–${modTop} bpm`}
+                  pct={model.intensity.pctMod}
+                  fillClass="bg-[var(--status-warn)]"
+                  targetLeftPct={10}
+                  targetLabel="~10%"
+                />
+                <ZoneRow
+                  label="Zone 4–5"
+                  sub={`Hard · >${modTop} bpm`}
+                  pct={model.intensity.pctHard}
+                  fillClass="bg-[var(--status-bad)] opacity-[0.85]"
+                  targetLeftPct={10}
+                  targetLabel="~10%"
+                />
+              </>
+            );
+          })()}
           <ul className="mt-5 flex flex-wrap gap-6 border-t border-[rgba(213,216,224,0.3)] pt-4 text-[11px] text-[var(--text-muted)]">
             <li className="flex items-center gap-2 font-sans">
               <span className="size-2 rounded-sm bg-[var(--accent)]" aria-hidden />{" "}
@@ -218,6 +227,12 @@ export function WeeklyReportView({
               Hard (target ~10%)
             </li>
           </ul>
+          <p className="mt-3 font-sans text-[11px] text-[var(--text-muted)]">
+            Zones based on your observed max HR of {model.intensity.observedMaxHr} bpm using the 75/85% threshold method.{" "}
+            <a href="/learn#heart-rate-zones" className="text-[var(--accent)] underline underline-offset-2">
+              How zones are calculated →
+            </a>
+          </p>
           {model.sessions.some(
             (s) => s.typeLabel === "Intervals" || s.typeLabel === "Tempo",
           ) && (
@@ -239,19 +254,31 @@ export function WeeklyReportView({
             Sessions
           </h2>
           <p className="mt-0.5 font-sans text-[12px] text-[var(--text-muted)]">
-            Status reflects execution quality for each session type, not weekly balance
+            Status reflects how well each session matched its intended effort level.
           </p>
         </div>
-        <SessionsTableWithHints
-          sessions={model.sessions}
-          explanations={sessionHints}
-          structured={sessionStructured}
-        />
+        <SessionsTableWithHints sessions={model.sessions} />
+        {/* unused hint vars kept for type-check compatibility */}
+        {/* Status legend */}
+        <div className="mt-3 flex flex-wrap gap-x-6 gap-y-1 font-sans text-[11px] text-[var(--text-muted)]">
+          <span className="flex items-center gap-1.5">
+            <span className="size-2 rounded-full bg-[var(--status-good)]" aria-hidden />
+            <strong className="font-medium text-[var(--text-secondary)]">Good</strong> — HR matched session type (easy run truly easy, hard run genuinely hard)
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="size-2 rounded-full bg-[var(--status-warn)]" aria-hidden />
+            <strong className="font-medium text-[var(--text-secondary)]">Watch</strong> — HR slightly outside expected range for this session type
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="size-2 rounded-full bg-[var(--status-bad)]" aria-hidden />
+            <strong className="font-medium text-[var(--text-secondary)]">Flag</strong> — HR significantly mismatched (e.g., easy run with high HR)
+          </span>
+        </div>
       </section>
 
       <section className="mt-14" aria-labelledby="findings-heading">
         <h2 id="findings-heading" className="mb-4 font-sans text-[15px] font-semibold">
-          Findings
+          What the data flagged
         </h2>
         {model.findings.length === 0 ? (
           <p className="rounded border border-[var(--border)] bg-[var(--surface)] p-6 font-sans text-[14px] text-[var(--text-secondary)]">

@@ -3,35 +3,49 @@
 import { useState } from "react";
 import type { TrendPoint } from "@/lib/report/model";
 
-const W = 120;
-const H = 40;
-const PAD = 4;
+const W = 240;
+const H = 70;
+const PAD = 6;
 
-function buildPath(values: number[]): string {
+function weekLabel(iso: string): string {
+  const d = new Date(`${iso}T00:00:00Z`);
+  const end = new Date(d);
+  end.setUTCDate(d.getUTCDate() + 6);
+  const fmt = (dt: Date) =>
+    dt.toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "UTC" });
+  return `${fmt(d)} – ${fmt(end)}`;
+}
+
+function buildPath(values: number[], w = W, h = H, pad = PAD): string {
   if (values.length < 2) return "";
   const min = Math.min(...values);
   const max = Math.max(...values);
   const range = max - min || 1;
-  const pts = values.map((v, i) => {
-    const x = PAD + ((W - PAD * 2) * i) / (values.length - 1);
-    const y = H - PAD - ((v - min) / range) * (H - PAD * 2);
-    return `${x.toFixed(1)},${y.toFixed(1)}`;
-  });
-  return pts.join(" ");
+  return values
+    .map((v, i) => {
+      const x = pad + ((w - pad * 2) * i) / (values.length - 1);
+      const y = h - pad - ((v - min) / range) * (h - pad * 2);
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    })
+    .join(" ");
 }
 
 function Sparkline({
   label,
   values,
+  weekStarts,
   currentIdx,
   unit,
   color,
+  decimals = 0,
 }: {
   label: string;
   values: number[];
+  weekStarts: string[];
   currentIdx: number;
   unit: string;
   color: string;
+  decimals?: number;
 }) {
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
   const activeIdx = hoveredIdx ?? currentIdx;
@@ -42,79 +56,71 @@ function Sparkline({
   const max = Math.max(...values);
   const range = max - min || 1;
 
-  const currentX = PAD + ((W - PAD * 2) * currentIdx) / (values.length - 1);
-  const currentY = H - PAD - ((values[currentIdx]! - min) / range) * (H - PAD * 2);
+  function xOf(i: number) {
+    return PAD + ((W - PAD * 2) * i) / (values.length - 1);
+  }
+  function yOf(v: number) {
+    return H - PAD - ((v - min) / range) * (H - PAD * 2);
+  }
 
-  const hoverX = hoveredIdx !== null
-    ? PAD + ((W - PAD * 2) * hoveredIdx) / (values.length - 1)
-    : null;
-  const hoverY = hoveredIdx !== null
-    ? H - PAD - ((values[hoveredIdx]! - min) / range) * (H - PAD * 2)
-    : null;
+  const curX = xOf(currentIdx);
+  const curY = yOf(values[currentIdx]!);
+  const hovX = hoveredIdx !== null ? xOf(hoveredIdx) : null;
+  const hovY = hoveredIdx !== null ? yOf(values[hoveredIdx]!) : null;
+
+  const displayValue = values[activeIdx]?.toFixed(decimals);
+  const displayWeek = weekStarts[activeIdx] ? weekLabel(weekStarts[activeIdx]) : "";
+  const isCurrent = activeIdx === currentIdx;
 
   return (
-    <div className="flex flex-col items-start gap-1">
+    <div className="flex flex-col gap-1">
       <p className="font-sans text-[11px] font-medium uppercase tracking-wide text-[var(--text-muted)]">
         {label}
       </p>
-      <p className="font-mono text-[15px] font-medium text-[var(--text-primary)]">
-        {values[activeIdx]?.toFixed(label === "Distance" ? 1 : 0)}{unit}
+      <p className="font-mono text-[20px] font-medium leading-none text-[var(--text-primary)]">
+        {displayValue}
+        <span className="font-sans text-[13px] font-normal text-[var(--text-muted)]">{unit}</span>
+      </p>
+      <p className={`font-sans text-[11px] ${isCurrent ? "text-[var(--text-muted)]" : "text-[var(--accent)]"}`}>
+        {isCurrent ? "This week" : displayWeek}
       </p>
       <svg
         width={W}
         height={H}
         viewBox={`0 0 ${W} ${H}`}
-        className="overflow-visible"
-        aria-label={`${label} trend chart`}
+        className="mt-1 overflow-visible"
+        aria-label={`${label} trend`}
       >
-        {/* baseline */}
-        <line
-          x1={PAD}
-          y1={H - PAD}
-          x2={W - PAD}
-          y2={H - PAD}
-          stroke="var(--border)"
-          strokeWidth={1}
-        />
-        {/* sparkline polyline */}
+        <line x1={PAD} y1={H - PAD} x2={W - PAD} y2={H - PAD} stroke="var(--border)" strokeWidth={1} />
         <polyline
           points={buildPath(values)}
           fill="none"
           stroke={color}
-          strokeWidth={1.5}
+          strokeWidth={2}
           strokeLinejoin="round"
           strokeLinecap="round"
-          opacity={0.5}
+          opacity={0.4}
         />
         {/* current week dot */}
-        <circle
-          cx={currentX}
-          cy={currentY}
-          r={3.5}
-          fill={color}
-          opacity={0.9}
-        />
+        <circle cx={curX} cy={curY} r={5} fill={color} opacity={0.95} />
         {/* hover dot */}
-        {hoverX !== null && hoverY !== null && hoveredIdx !== currentIdx && (
-          <circle cx={hoverX} cy={hoverY} r={2.5} fill={color} opacity={0.6} />
+        {hovX !== null && hovY !== null && hoveredIdx !== currentIdx && (
+          <circle cx={hovX} cy={hovY} r={3.5} fill={color} opacity={0.7} />
         )}
-        {/* invisible hit areas for each data point */}
-        {values.map((_, i) => {
-          const x = PAD + ((W - PAD * 2) * i) / (values.length - 1);
-          return (
-            <rect
-              key={i}
-              x={x - 10}
-              y={0}
-              width={20}
-              height={H}
-              fill="transparent"
-              onMouseEnter={() => setHoveredIdx(i)}
-              onMouseLeave={() => setHoveredIdx(null)}
-              style={{ cursor: "crosshair" }}
-            />
-          );
-        })}
+        {/* hit areas */}
+        {values.map((_, i) => (
+          <rect
+            key={i}
+            x={xOf(i) - 14}
+            y={0}
+            width={28}
+            height={H}
+            fill="transparent"
+            onMouseEnter={() => setHoveredIdx(i)}
+            onMouseLeave={() => setHoveredIdx(null)}
+            style={{ cursor: "crosshair" }}
+          />
+        ))}
       </svg>
     </div>
   );
@@ -135,31 +141,32 @@ export function TrendSparklines({
     );
   }
 
-  const currentIdx = trend.findIndex((t) => t.weekStart === currentWeekStart);
+  const currentIdx = Math.max(
+    0,
+    trend.findIndex((t) => t.weekStart === currentWeekStart),
+  );
   const idx = currentIdx >= 0 ? currentIdx : trend.length - 1;
+  const weekStarts = trend.map((t) => t.weekStart);
 
   return (
-    <div className="mt-6 flex flex-wrap gap-8">
+    <div className="mt-6 flex flex-wrap gap-10 rounded border border-[var(--border)] bg-[var(--surface)] px-6 py-5">
       <Sparkline
-        label="Distance"
+        label="Weekly distance"
         values={trend.map((t) => t.distanceKm)}
+        weekStarts={weekStarts}
         currentIdx={idx}
         unit=" km"
         color="var(--accent)"
+        decimals={1}
       />
       <Sparkline
-        label="Load"
+        label="Training load"
         values={trend.map((t) => t.acuteLoad)}
+        weekStarts={weekStarts}
         currentIdx={idx}
         unit=" TSS"
         color="var(--status-warn)"
-      />
-      <Sparkline
-        label="Easy zone"
-        values={trend.map((t) => t.pctZone1_2)}
-        currentIdx={idx}
-        unit="%"
-        color="var(--status-good)"
+        decimals={0}
       />
     </div>
   );

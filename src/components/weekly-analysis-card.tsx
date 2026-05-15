@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState, useEffect } from "react";
+import { useTranslations } from "next-intl";
 import type { WeeklyReportModel, LlmWeeklySectionsModel } from "@/lib/report/model";
 
 const TONE_COOKIE = "eiq_weekly_tone";
@@ -17,11 +18,12 @@ function setToneCookie(tone: "coach" | "roast") {
 }
 
 function Sections({ sections }: { sections: LlmWeeklySectionsModel }) {
+  const t = useTranslations("report");
   return (
     <div className="grid gap-6 md:grid-cols-3">
       <div>
         <h3 className="font-sans text-[12px] font-semibold uppercase tracking-wide text-[var(--status-good)]">
-          Went well
+          {t("analysis.wentWell")}
         </h3>
         <p className="mt-2 text-[14px] leading-relaxed text-[var(--text-secondary)]">
           {sections.wentWell}
@@ -29,7 +31,7 @@ function Sections({ sections }: { sections: LlmWeeklySectionsModel }) {
       </div>
       <div>
         <h3 className="font-sans text-[12px] font-semibold uppercase tracking-wide text-[var(--status-warn)]">
-          Needs work
+          {t("analysis.needsWork")}
         </h3>
         <p className="mt-2 text-[14px] leading-relaxed text-[var(--text-secondary)]">
           {sections.needsWork}
@@ -37,7 +39,7 @@ function Sections({ sections }: { sections: LlmWeeklySectionsModel }) {
       </div>
       <div>
         <h3 className="font-sans text-[12px] font-semibold uppercase tracking-wide text-[var(--accent)]">
-          Next week
+          {t("analysis.nextWeek")}
         </h3>
         <p className="mt-2 text-[14px] leading-relaxed text-[var(--text-secondary)]">
           {sections.nextWeek}
@@ -66,14 +68,15 @@ export function WeeklyAnalysisCard({
   };
 
   const roastSections = model.llm?.roastSections ?? null;
-  const hasRoast = roastSections != null;
+  const roastEnabled = model.roastEnabled ?? false;
+  // Show tab when roast is enabled, even if content hasn't been generated yet
+  const showRoastTab = roastEnabled || roastSections != null;
 
   const [tone, setTone] = useState<"coach" | "roast">("coach");
 
-  // Hydrate from cookie after mount
   useEffect(() => {
-    if (hasRoast) setTone(getStoredTone());
-  }, [hasRoast]);
+    if (showRoastTab) setTone(getStoredTone());
+  }, [showRoastTab]);
 
   function switchTone(t: "coach" | "roast") {
     setTone(t);
@@ -96,7 +99,7 @@ export function WeeklyAnalysisCard({
           >
             This week
           </h2>
-          {hasRoast && (
+          {showRoastTab && (
             <div className="flex rounded border border-[var(--border)] bg-[var(--surface)] text-[11px] font-sans font-medium overflow-hidden">
               {(["coach", "roast"] as const).map((t) => (
                 <button
@@ -125,7 +128,13 @@ export function WeeklyAnalysisCard({
         ) : null}
       </div>
       <div className="rounded-[20px] border border-[rgba(213,216,224,0.45)] bg-[rgba(250,251,253,0.68)] p-6 shadow-[0_20px_40px_-16px_rgba(16,19,26,0.12)] backdrop-blur-xl md:p-8">
-        <Sections sections={activeSections} />
+        {tone === "roast" && !roastSections ? (
+          <p className="font-sans text-[14px] italic text-[var(--text-muted)]">
+            Roast is generating — reload this page in a few seconds to see your sarcastic summary.
+          </p>
+        ) : (
+          <Sections sections={activeSections} />
+        )}
       </div>
 
       {model.llm?.llmDisabledReason === "no_api_key" ? (
