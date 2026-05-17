@@ -7,6 +7,11 @@ import {
 } from "@/lib/strava/oauth";
 import { readToken, encryptToken } from "@/lib/oauth/tokens";
 import { withAthleteRefreshLock } from "@/lib/oauth/refreshLock";
+import { fetchActivityStreamsDetailed } from "@/lib/strava/streams";
+import { bucketHrByKm } from "@/lib/strava/bucketHrByKm";
+
+/** T10: cap per-sync streams fetches to stay well under Strava's 200 req/15min budget. */
+const STREAMS_PER_SYNC_CAP = 100;
 
 function deriveObservedMaxHr(
   activities: StravaSummaryActivity[],
@@ -86,6 +91,12 @@ export async function syncStravaActivities(
   let page = 1;
   let inserted = 0;
   let fetchedPages = 0;
+  // T10: collect freshly-inserted run workouts so we can fetch streams
+  // after the summary inserts complete (single round-trip per workout).
+  const runStreamsQueue: Array<{
+    workoutId: string;
+    sourceId: string;
+  }> = [];
 
   while (true) {
     const url = new URL("https://www.strava.com/api/v3/athlete/activities");
@@ -132,14 +143,91 @@ export async function syncStravaActivities(
     const fresh = rows.filter((r) => !seen.has(r.source_id));
 
     if (fresh.length > 0) {
-      const { error: insErr } = await admin.from("workouts").insert(fresh);
+      const { data: insertedRows, error: insErr } = await admin
+        .from("workouts")
+        .insert(fresh)
+        .select("id, source_id, sport_type");
       if (insErr) throw new Error(insErr.message);
       inserted += fresh.length;
+      // T10: only running activities benefit from per-km HR
+      for (const row of insertedRows ?? []) {
+        if (row.sport_type === "run") {
+          runStreamsQueue.push({
+            workoutId: String(row.id),
+            sourceId: String(row.source_id),
+          });
+          if (runStreamsQueue.length >= STREAMS_PER_SYNC_CAP) break;
+        }
+      }
     }
 
     if (activities.length < 100) break;
     page += 1;
   }
 
+  // T10: fetch streams for newly-inserted run workouts, capped per sync.
+  // Failures are recorded (streams_status='failed') but do not abort the sync.
+  const toFetch = runStreamsQueue.slice(0, STREAMS_PER_SYNC_CAP);
+  for (const item of toFetch) {
+    await persistStreamsForWorkout(item.workoutId, item.sourceId, accessToken);
+  }
+
   return { fetchedPages, inserted };
+}
+
+/**
+ * Public — webhook handler imports this when a single activity is created.
+ * Pass the workout row id and Strava activity id.
+ */
+export async function fetchAndPersistStreams(
+  workoutId: string,
+  sourceId: string,
+  accessToken: string,
+): Promise<void> {
+  await persistStreamsForWorkout(workoutId, sourceId, accessToken);
+}
+
+async function persistStreamsForWorkout(
+  workoutId: string,
+  sourceId: string,
+  accessToken: string,
+): Promise<void> {
+  const admin = createAdminClient();
+  const activityId = Number(sourceId);
+  if (!Number.isFinite(activityId)) return;
+
+  const outcome = await fetchActivityStreamsDetailed(activityId, accessToken);
+  if (outcome.kind === "ok") {
+    const buckets = bucketHrByKm(outcome.streams);
+    if (buckets.length === 0) {
+      await admin
+        .from("workouts")
+        .update({
+          streams_status: "unavailable",
+          streams_fetched_at: new Date().toISOString(),
+        })
+        .eq("id", workoutId);
+      return;
+    }
+    await admin
+      .from("workouts")
+      .update({
+        hr_per_km: {
+          km: buckets,
+          resolution: outcome.streams.resolution,
+          source: "strava_streams_v3",
+        },
+        streams_status: "fetched",
+        streams_fetched_at: new Date().toISOString(),
+      })
+      .eq("id", workoutId);
+  } else {
+    await admin
+      .from("workouts")
+      .update({
+        streams_status: outcome.kind === "unavailable" ? "unavailable" : "failed",
+        streams_fetched_at: new Date().toISOString(),
+      })
+      .eq("id", workoutId);
+  }
 }

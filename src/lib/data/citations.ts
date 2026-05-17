@@ -113,6 +113,16 @@ export const CITATIONS = {
   },
 
   // ── Long run / intensity ─────────────────────────────────────────────────
+  lambert_2002: {
+    id: "lambert_2002",
+    label: "Lambert et al. (2002)",
+    doi: "10.1136/bjsm.36.4.279",
+    pubmed_id: null,
+    url: "https://doi.org/10.1136/bjsm.36.4.279",
+    strength: "Moderate",
+    note:
+      "Heart rate drift in endurance running — 6% threshold for fatigue/dehydration. Used by T10 stream-based Rule 4.",
+  },
   laursen_2010: {
     id: "laursen_2010",
     label: "Laursen (2010)",

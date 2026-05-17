@@ -44,6 +44,16 @@ export interface WorkoutRow {
   max_hr: number | null;
   avg_cadence: number | null;
   training_stress: number | string | null;
+  /** T10: per-km HR buckets when Strava streams are present. */
+  hr_per_km?: {
+    km: Array<{
+      km_index: number;
+      avg_hr: number;
+      max_hr: number;
+      duration_sec: number;
+      pace_sec_per_km: number;
+    }>;
+  } | null;
 }
 
 export interface WeeklyAnalysisUpsert {
@@ -668,7 +678,7 @@ export async function computeWeeklyReportPayload(
   const { data: rows, error: wErr } = await db
     .from("workouts")
     .select(
-      "id, source, sport_type, session_label, started_at, duration_seconds, distance_meters, avg_hr, max_hr, avg_cadence, training_stress",
+      "id, source, sport_type, session_label, started_at, duration_seconds, distance_meters, avg_hr, max_hr, avg_cadence, training_stress, hr_per_km",
     )
     .eq("athlete_id", athleteId)
     .gte("started_at", fetchStartIso)

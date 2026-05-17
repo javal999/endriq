@@ -10,6 +10,35 @@ export interface WorkoutForRules {
   duration_seconds: number;
   avg_hr: number | null;
   avg_cadence: number | null;
+  /** T10: per-km HR buckets when Strava streams are available. */
+  hr_per_km?: {
+    km: Array<{
+      km_index: number;
+      avg_hr: number;
+      max_hr: number;
+      duration_sec: number;
+      pace_sec_per_km: number;
+    }>;
+  } | null;
+}
+
+/**
+ * T10 — compute first-third → last-third HR drift from per-km buckets.
+ * Returns null when buckets are too few or absent. >0 = drift up.
+ */
+export function longRunDriftFromBuckets(
+  buckets: Array<{ avg_hr: number }>,
+): number | null {
+  if (!Array.isArray(buckets) || buckets.length < 6) return null;
+  const third = Math.floor(buckets.length / 3);
+  const first = buckets.slice(0, third);
+  const last = buckets.slice(buckets.length - third);
+  const mean = (arr: Array<{ avg_hr: number }>) =>
+    arr.reduce((s, b) => s + b.avg_hr, 0) / arr.length;
+  const f = mean(first);
+  const l = mean(last);
+  if (f <= 0) return null;
+  return (l - f) / f;
 }
 
 function utcDayKey(iso: string): string {
@@ -149,30 +178,50 @@ export function computeRuleFindings(options: {
     });
   }
 
-  // Rule 4 — long run HR drift
+  // Rule 4 — long run HR drift.
+  // T10: when per-km streams are present we compute true first-third →
+  // last-third drift; > 6% triggers (Lambert 2002). When absent we fall
+  // back to the session-average heuristic (avg HR / max > 80%).
   const longRuns = inWeek.filter(
     (w) =>
       w.sport_type === "run" &&
       w.session_label === "long_run" &&
-      w.avg_hr != null &&
       options.observedMaxHr > 0,
   );
   for (const w of longRuns) {
-    const frac = (w.avg_hr as number) / options.observedMaxHr;
-    if (frac > 0.8) {
+    const drift = longRunDriftFromBuckets(w.hr_per_km?.km ?? []);
+    if (drift != null && drift > 0.06) {
       out.push({
         severity: "Medium",
         tone: "warn",
         title: "Long run pace ties easy runs",
-        body:
-          "Average HR on the long run sits close to general aerobic efforts. Consider slowing early miles so the last third stays controlled.",
+        body: `First-third to last-third HR drift was ${(drift * 100).toFixed(1)}% — over 6% suggests you went too hard early. Consider slowing the first 5–10km so the back half stays controlled.`,
         citations: [
+          citationToLink("lambert_2002"),
           citationToLink("laursen_2010"),
         ],
-        confidence: "Confidence: Moderate — single-session avg HR",
-        evidenceStrength: "Moderate",
+        confidence: "Confidence: High — per-km stream drift",
+        evidenceStrength: "Strong",
       });
       break;
+    }
+    if (drift == null && w.avg_hr != null) {
+      const frac = (w.avg_hr as number) / options.observedMaxHr;
+      if (frac > 0.8) {
+        out.push({
+          severity: "Medium",
+          tone: "warn",
+          title: "Long run pace ties easy runs",
+          body:
+            "Average HR on the long run sits close to general aerobic efforts. Consider slowing early miles so the last third stays controlled.",
+          citations: [
+            citationToLink("laursen_2010"),
+          ],
+          confidence: "Confidence: Moderate — single-session avg HR",
+          evidenceStrength: "Moderate",
+        });
+        break;
+      }
     }
   }
 
