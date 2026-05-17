@@ -102,6 +102,18 @@ async function fetchTypicalWeek(
   return (data?.typical_week_pattern as TypicalWeekPattern) ?? null;
 }
 
+/**
+ * Public read for the athlete's typical-week pattern. Architecture A2:
+ * everywhere outside lib/plan/ must use this helper rather than reading
+ * athletes.typical_week_pattern directly.
+ */
+export async function getTypicalWeekPattern(
+  athleteId: string,
+  db: SupabaseClient,
+): Promise<TypicalWeekPattern> {
+  return (await fetchTypicalWeek(db, athleteId)) ?? [];
+}
+
 function toIsoDate(d: string | Date): string {
   if (typeof d === "string") {
     if (/^\d{4}-\d{2}-\d{2}$/.test(d)) return d;
