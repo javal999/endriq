@@ -93,7 +93,7 @@ export function DailyJournalCard({ today, initial }: DailyJournalCardProps) {
           <button
             type="button"
             onClick={dismiss}
-            className="rounded-sm border border-[var(--border)] px-2 py-1 font-sans text-[11px] text-[var(--text-muted)] hover:border-[var(--border-strong)] hover:text-[var(--text-secondary)]"
+            className="inline-flex min-h-11 items-center rounded-sm border border-[var(--border)] px-3 font-sans text-[12px] text-[var(--text-muted)] hover:border-[var(--border-strong)] hover:text-[var(--text-secondary)]"
             aria-label="Dismiss daily check-in"
           >
             Dismiss
@@ -166,8 +166,8 @@ function YesNoButton({
       onClick={onClick}
       className={
         selected
-          ? "rounded-sm border border-[var(--accent)] bg-[var(--accent-soft)] px-3 py-1.5 font-sans text-[12px] font-medium text-[var(--accent-dark)]"
-          : "rounded-sm border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 font-sans text-[12px] text-[var(--text-secondary)] hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]"
+          ? "inline-flex min-h-11 min-w-14 items-center justify-center rounded-sm border border-[var(--accent)] bg-[var(--accent-soft)] px-4 font-sans text-[13px] font-medium text-[var(--accent-dark)]"
+          : "inline-flex min-h-11 min-w-14 items-center justify-center rounded-sm border border-[var(--border)] bg-[var(--surface)] px-4 font-sans text-[13px] text-[var(--text-secondary)] hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]"
       }
     >
       {label}

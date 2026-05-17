@@ -132,7 +132,7 @@ export function ExerciseSetLogger({
                 <button
                   type="button"
                   onClick={() => patch(i, { saved: false })}
-                  className="font-sans text-[11px] text-[var(--accent)] underline underline-offset-2"
+                  className="inline-flex min-h-11 items-center px-2 font-sans text-[12px] font-medium text-[var(--accent)] underline underline-offset-2"
                 >
                   Edit
                 </button>
@@ -153,7 +153,7 @@ export function ExerciseSetLogger({
                 type="button"
                 onClick={() => saveSet(i)}
                 disabled={row.saving}
-                className="ml-auto rounded-sm bg-[var(--accent)] px-3 py-1 font-sans text-[12px] font-medium text-[var(--text-on-accent,white)] hover:opacity-90 disabled:opacity-50"
+                className="ml-auto inline-flex min-h-11 items-center rounded-sm bg-[var(--accent)] px-4 font-sans text-[13px] font-medium text-[var(--text-on-accent,white)] hover:opacity-90 disabled:opacity-50"
               >
                 {row.saving ? "Saving…" : "Done"}
               </button>
@@ -195,7 +195,7 @@ function NumInput({
       value={value}
       disabled={disabled}
       onChange={(e) => onChange(e.target.value)}
-      className="w-16 rounded-sm border border-[var(--border)] bg-[var(--surface)] px-1.5 py-1 font-mono text-[13px] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none disabled:opacity-60"
+      className="w-20 min-h-11 rounded-sm border border-[var(--border)] bg-[var(--surface)] px-2 font-mono text-[14px] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none disabled:opacity-60"
     />
   );
 }

@@ -286,7 +286,7 @@ function WindowSelector({
           onClick={() => onChange(o.n)}
           aria-pressed={value === o.n}
           className={
-            "rounded-sm border px-2 py-1 font-sans text-[11px] " +
+            "inline-flex min-h-11 min-w-11 items-center justify-center rounded-sm border px-3 font-sans text-[12px] " +
             (value === o.n
               ? "border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent-dark)]"
               : "border-[var(--border)] bg-[var(--surface)] text-[var(--text-secondary)] hover:border-[var(--border-strong)]")
