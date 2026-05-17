@@ -408,6 +408,7 @@ export function assembleWeeklyReportPayload(input: {
     return {
       workoutId: stableWorkoutKey(w, athleteId),
       dateShort: shortSessionDate(w.started_at),
+      startedAtIso: w.started_at,
       typeLabel: sessionTypeLabel(w),
       distanceLabel: distanceLabel(w),
       hrLabel: hrLabel(w.avg_hr),

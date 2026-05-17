@@ -44,6 +44,8 @@ export interface SessionTypeChipProps {
   selected?: boolean;
   disabled?: boolean;
   onClick?: () => void;
+  /** Optional link target — renders as <a> instead of <span>. */
+  href?: string;
   className?: string;
   /** Optional removal handler — when present, shows an inline × button. */
   onRemove?: () => void;
@@ -54,10 +56,54 @@ export function SessionTypeChip({
   selected = false,
   disabled = false,
   onClick,
+  href,
   onRemove,
   className = "",
 }: SessionTypeChipProps) {
-  const isInteractive = !disabled && (!!onClick || !!onRemove);
+  const isInteractive = !disabled && (!!onClick || !!onRemove || !!href);
+  const commonClass =
+    `inline-flex h-7 items-center gap-1 rounded-sm px-2 py-1 ` +
+    `font-sans text-[12px] font-medium text-[var(--text-primary)] no-underline ` +
+    `${selected ? "ring-1 ring-[var(--accent)]" : ""} ` +
+    `${className}`;
+  const commonStyle = {
+    background: TONE_BG[type],
+    opacity: disabled ? 0.5 : 1,
+    cursor: isInteractive ? "pointer" : "default",
+  };
+
+  const inner = (
+    <>
+      {LABELS[type]}
+      {onRemove && !disabled && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onRemove();
+          }}
+          aria-label={`Remove ${LABELS[type]}`}
+          className="ml-1 rounded-sm px-1 text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+        >
+          ×
+        </button>
+      )}
+    </>
+  );
+
+  if (href && !disabled) {
+    return (
+      <a
+        href={href}
+        style={commonStyle}
+        className={commonClass}
+        aria-label={`Open ${LABELS[type]} session`}
+      >
+        {inner}
+      </a>
+    );
+  }
+
   return (
     <span
       role={onClick ? "button" : undefined}
@@ -73,32 +119,10 @@ export function SessionTypeChip({
             }
           : undefined
       }
-      style={{
-        background: TONE_BG[type],
-        opacity: disabled ? 0.5 : 1,
-        cursor: isInteractive ? "pointer" : "default",
-      }}
-      className={
-        `inline-flex h-7 items-center gap-1 rounded-sm px-2 py-1 ` +
-        `font-sans text-[12px] font-medium text-[var(--text-primary)] ` +
-        `${selected ? "ring-1 ring-[var(--accent)]" : ""} ` +
-        `${className}`
-      }
+      style={commonStyle}
+      className={commonClass}
     >
-      {LABELS[type]}
-      {onRemove && !disabled && (
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            onRemove();
-          }}
-          aria-label={`Remove ${LABELS[type]}`}
-          className="ml-1 rounded-sm px-1 text-[var(--text-muted)] hover:text-[var(--text-primary)]"
-        >
-          ×
-        </button>
-      )}
+      {inner}
     </span>
   );
 }
