@@ -121,6 +121,26 @@ export default async function SettingsPage({ searchParams }: Props) {
         />
       </section>
 
+      <section className="mt-10" aria-labelledby="training-pattern-heading">
+        <h2 id="training-pattern-heading" className="font-sans text-[15px] font-semibold">
+          Training pattern
+        </h2>
+        <div className="mt-4 rounded border border-[var(--border)] bg-[var(--surface)] p-6">
+          <p className="text-[13px] leading-relaxed text-[var(--text-secondary)]">
+            Your typical training week. Drives the planned strip in /week,
+            the 22-week race arc, and the night-before preview.
+          </p>
+          <p className="mt-3">
+            <Link
+              href="/settings/training-pattern"
+              className="font-sans text-[13px] font-medium text-[var(--accent)] underline underline-offset-2"
+            >
+              Edit pattern →
+            </Link>
+          </p>
+        </div>
+      </section>
+
       <section className="mt-10" aria-labelledby="races-heading">
         <h2 id="races-heading" className="font-sans text-[15px] font-semibold">
           Races
