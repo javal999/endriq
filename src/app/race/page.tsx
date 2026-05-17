@@ -273,7 +273,15 @@ export default async function RacePage() {
           ← Dashboard
         </Link>
       </p>
-      <h1 className="mt-2 font-sans text-xl font-bold tracking-tight">Race countdown</h1>
+      <div className="mt-2 flex flex-wrap items-baseline justify-between gap-2">
+        <h1 className="font-sans text-xl font-bold tracking-tight">Race countdown</h1>
+        <Link
+          href="/race/fitness"
+          className="rounded-sm border border-[var(--border)] px-2 py-1 font-sans text-[12px] text-[var(--text-secondary)] hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]"
+        >
+          Fitness trend →
+        </Link>
+      </div>
 
       <div className="mt-6">
         <RaceCountdownCard race={race} today={today} />

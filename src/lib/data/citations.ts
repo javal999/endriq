@@ -100,6 +100,16 @@ export const CITATIONS = {
     strength: "Strong",
     note: "Original TRIMP formulation. Book chapter — no DOI.",
   },
+  coggan_allen_2010: {
+    id: "coggan_allen_2010",
+    label: "Coggan & Allen (2010)",
+    doi: null,
+    pubmed_id: null,
+    url: "https://www.velopress.com/books/training-and-racing-with-a-power-meter-2nd-ed/",
+    strength: "Moderate",
+    note:
+      "Performance Manager Chart (CTL/ATL/TSB) — book on power-based training. No DOI.",
+  },
 
   // ── Overtraining / rest ──────────────────────────────────────────────────
   budgett_1998: {
