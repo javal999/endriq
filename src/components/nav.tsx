@@ -45,7 +45,15 @@ export async function Nav() {
         </Link>
 
         {user ? (
-          <nav aria-label="Primary" className="flex items-center gap-6">
+          // T04 mobile pass: top-nav links are desktop-only. On viewports
+          // below `md`, BottomNav (rendered in app/layout.tsx) takes over.
+          // The locale switch + signed-in badge stay accessible.
+          <>
+          {/* Mobile locale switch — bottom-nav handles navigation. */}
+          <div className="flex md:hidden">
+            <LocaleSwitch currentLocale={locale} />
+          </div>
+          <nav aria-label="Primary" className="hidden items-center gap-6 md:flex">
             <ul className="flex gap-8">
               {[
                 { href: "/dashboard", label: t("nav.home") },
@@ -67,6 +75,7 @@ export async function Nav() {
             </ul>
             <LocaleSwitch currentLocale={locale} />
           </nav>
+          </>
         ) : (
           <nav aria-label="Primary" className="flex items-center gap-4">
             <ul className="flex gap-6">

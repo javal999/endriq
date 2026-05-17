@@ -1,18 +1,51 @@
 @import "tailwindcss";
 
-/* EnduranceIQ tokens — align with enduranceiq-prototype.html STYLE LOCK */
+/* EnduranceIQ tokens — Phase 2.1 design refresh (Apple-derivative direction).
+   Phase 2.0 prototype glass blur is retained on the single F8 hero panel only;
+   everywhere else uses solid white cards with hairline borders. */
 :root {
   --canvas: #f2f3f6;
-  --surface: #fafbfd;
+  --surface: #ffffff; /* T01: true white (was #fafbfd) */
   --surface-raised: #eceef2;
   --border: #d5d8e0;
   --text-primary: #10131a;
   --text-secondary: #565d6e;
   --text-muted: #6B7180;  /* was #8a91a0 — passes WCAG AA on glass canvas */
+  --text-on-accent: #ffffff;
   --accent: #2e5e4e;
+  --accent-soft: rgba(46, 94, 78, 0.09);
+  --accent-dark: #1f4338;
   --status-good: #2e7d5b;
   --status-warn: #b87a0a;
   --status-bad: #c44b3f;
+  --status-good-bg: rgba(46, 125, 91, 0.08);
+  --status-warn-bg: rgba(184, 122, 10, 0.08);
+  --status-bad-bg: rgba(196, 75, 63, 0.06);
+
+  /* T01 — Apple-derivative card system */
+  --radius-card: 14px;
+  --card-border: 0.5px solid rgba(213, 216, 224, 0.6);
+  --card-border-strong: 1px solid rgba(213, 216, 224, 0.7);
+
+  /* T01 — Activity ring tokens */
+  --ring-easy: #2E5E4E;
+  --ring-volume: #185FA5;
+  --ring-strength: #534AB7;
+  --ring-easy-track: rgba(46, 94, 78, 0.12);
+  --ring-volume-track: rgba(24, 95, 165, 0.12);
+  --ring-strength-track: rgba(83, 74, 183, 0.12);
+
+  /* T01 — Race countdown ring (visually distinct from progress rings;
+     stroke is charcoal not green, track is dashed in the SVG markup). */
+  --countdown-stroke: #10131A;
+  --countdown-track: rgba(16, 19, 26, 0.08);
+
+  /* T01 — AI sparkle marker (the only place "this is LLM-authored" is signalled) */
+  --ai-marker-bg: rgba(46, 94, 78, 0.06);
+  --ai-marker-fg: #1F4338;
+
+  /* T01 — typography shortcut for the metric value pattern */
+  --font-mono-lg: 20px;
 }
 
 @theme inline {

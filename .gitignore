@@ -75,3 +75,8 @@ playwright-report/
 * 2.*
 * 3.*
 * 4.*
+# iCloud also clones directories with a " 2" suffix and no extension
+# (e.g. `node_modules 2`). The * 2.* glob doesn't catch these.
+* 2/
+* 3/
+* 4/
