@@ -29,8 +29,7 @@ export default async function FitnessPage() {
 
   const today = new Date();
   const todayIso = `${today.getUTCFullYear()}-${String(today.getUTCMonth() + 1).padStart(2, "0")}-${String(today.getUTCDate()).padStart(2, "0")}`;
-  const startMs = Date.now() - HISTORY_DAYS * 86400000;
-  const startDate = new Date(startMs);
+  const startDate = new Date(today.getTime() - HISTORY_DAYS * 86400000);
   const startIso = `${startDate.getUTCFullYear()}-${String(startDate.getUTCMonth() + 1).padStart(2, "0")}-${String(startDate.getUTCDate()).padStart(2, "0")}`;
 
   const { data: rows } = await supabase

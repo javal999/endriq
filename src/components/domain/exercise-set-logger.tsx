@@ -138,8 +138,8 @@ export function ExerciseSetLogger({
                 </button>
                 {isActive ? (
                   <RestTimer
+                    key={`${exerciseId}-${i}`}
                     seconds={restSeconds}
-                    resetKey={`${exerciseId}-${i}`}
                     onComplete={() => setActiveRest(null)}
                   />
                 ) : (
