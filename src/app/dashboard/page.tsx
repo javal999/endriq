@@ -6,12 +6,18 @@ import { citationToLink } from "@/lib/data/citations";
 import { ProfileCompletenessBanner } from "@/components/profile-completeness-banner";
 import { RaceCountdownCard } from "@/components/domain/race-countdown-card";
 import { PreSessionPreviewCard } from "@/components/domain/pre-session-preview-card";
+import { TodaysPlanTile } from "@/components/domain/todays-plan-tile";
 import { AdvisoryBlock } from "@/components/ui/advisory-block";
-import { getPlannedSession } from "@/lib/plan/getPlannedSession";
+import {
+  getPlannedSession,
+  getTypicalWeekPattern,
+} from "@/lib/plan/getPlannedSession";
 import {
   shouldRecommendRestDay,
   type Feeling,
 } from "@/lib/analytics/recoveryOverride";
+import { computeTodaysPlan } from "@/lib/analytics/todaysPlan";
+import { currentPhase } from "@/lib/analytics/periodization";
 
 export default async function DashboardPage() {
   const week = isoMondayLocal();
@@ -88,6 +94,80 @@ export default async function DashboardPage() {
       hasStrengthToday = planned.sessions.some((s) => s.type === "strength");
     } catch {
       // Non-fatal — fall back to not showing the card.
+    }
+  }
+
+  // T02 — Today's Plan tile. Aggregates: latest recovery check-in (today,
+  // or fallback to most-recent), most-recent load_ratio from
+  // weekly_analyses, today's planned sessions, periodisation phase, and
+  // whether a typical-week pattern exists. Pure compute downstream.
+  let todaysPlan:
+    | ReturnType<typeof computeTodaysPlan>
+    | null = null;
+  if (user) {
+    const admin = createAdminClient();
+    const today = new Date();
+    const todayIso = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+    try {
+      const [
+        { data: recoveryRow },
+        { data: latestAnalysis },
+        plannedToday,
+        pattern,
+        { data: primaryRaceForPlan },
+      ] = await Promise.all([
+        admin
+          .from("recovery_check_in")
+          .select("feeling, check_in_date")
+          .eq("athlete_id", user.id)
+          .order("check_in_date", { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+        admin
+          .from("weekly_analyses")
+          .select("load_ratio")
+          .eq("athlete_id", user.id)
+          .order("week_start", { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+        getPlannedSession(user.id, todayIso, admin),
+        getTypicalWeekPattern(user.id, admin),
+        admin
+          .from("races")
+          .select("race_date, race_type")
+          .eq("athlete_id", user.id)
+          .eq("is_primary", true)
+          .maybeSingle(),
+      ]);
+      const phase = currentPhase(
+        primaryRaceForPlan
+          ? {
+              race_date: String(primaryRaceForPlan.race_date),
+              race_type:
+                typeof primaryRaceForPlan.race_type === "string"
+                  ? primaryRaceForPlan.race_type
+                  : null,
+            }
+          : null,
+        today,
+      );
+      todaysPlan = computeTodaysPlan({
+        latestRecoveryCheckIn:
+          recoveryRow?.feeling === "sharp" ||
+          recoveryRow?.feeling === "okay" ||
+          recoveryRow?.feeling === "tired"
+            ? (recoveryRow.feeling as Feeling)
+            : null,
+        loadRatio:
+          typeof latestAnalysis?.load_ratio === "number"
+            ? latestAnalysis.load_ratio
+            : null,
+        plannedSession: { sessions: plannedToday.sessions },
+        phase,
+        hasTypicalWeekPattern: Array.isArray(pattern) && pattern.length > 0,
+      });
+    } catch {
+      // Non-fatal — tile silently absent if any read fails.
     }
   }
 
@@ -171,6 +251,12 @@ export default async function DashboardPage() {
               taking a full rest day to recover before the next hard session.
             </p>
           </AdvisoryBlock>
+        </div>
+      )}
+
+      {todaysPlan && todaysPlan.recommendation !== "no_session" && (
+        <div className="mb-6">
+          <TodaysPlanTile plan={todaysPlan} />
         </div>
       )}
 
