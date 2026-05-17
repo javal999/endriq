@@ -119,6 +119,26 @@ export default async function SettingsPage({ searchParams }: Props) {
         />
       </section>
 
+      <section className="mt-10" aria-labelledby="races-heading">
+        <h2 id="races-heading" className="font-sans text-[15px] font-semibold">
+          Races
+        </h2>
+        <div className="mt-4 rounded border border-[var(--border)] bg-[var(--surface)] p-6">
+          <p className="text-[13px] leading-relaxed text-[var(--text-secondary)]">
+            Track multiple races and choose which one anchors your countdown +
+            predicted finish.
+          </p>
+          <p className="mt-3">
+            <Link
+              href="/settings/races"
+              className="font-sans text-[13px] font-medium text-[var(--accent)] underline underline-offset-2"
+            >
+              Manage races →
+            </Link>
+          </p>
+        </div>
+      </section>
+
       <section className="mt-10" aria-labelledby="integrations-heading">
         <h2 id="integrations-heading" className="font-sans text-[15px] font-semibold">
           Integrations
