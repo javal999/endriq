@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isoMondayLocal } from "@/lib/report/date";
@@ -6,6 +7,7 @@ import { citationToLink } from "@/lib/data/citations";
 import { ProfileCompletenessBanner } from "@/components/profile-completeness-banner";
 import { RaceCountdownCard } from "@/components/domain/race-countdown-card";
 import { PreSessionPreviewCard } from "@/components/domain/pre-session-preview-card";
+import { DailyJournalCard } from "@/components/domain/daily-journal-card";
 import { AdvisoryBlock } from "@/components/ui/advisory-block";
 import { getPlannedSession } from "@/lib/plan/getPlannedSession";
 import {
@@ -155,11 +157,61 @@ export default async function DashboardPage() {
     }
   }
 
+  // T07: daily journal — show once per day. Hide if the dismissal cookie is
+  // present OR if all three tags are already saved. Initial values seed the
+  // toggle state.
+  let journal:
+    | {
+        today: string;
+        initial: {
+          slept_well: boolean | null;
+          travelling: boolean | null;
+          stressed: boolean | null;
+        };
+      }
+    | null = null;
+  if (user) {
+    const now = new Date();
+    const isoDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+    const cookieStore = await cookies();
+    const dismissed = cookieStore.get(`eiq_journal_dismissed_${isoDate}`)?.value === "1";
+    if (!dismissed) {
+      const admin = createAdminClient();
+      const { data: row } = await admin
+        .from("daily_journal_tags")
+        .select("slept_well, travelling, stressed")
+        .eq("athlete_id", user.id)
+        .eq("check_in_date", isoDate)
+        .maybeSingle();
+      const allAnswered =
+        row != null &&
+        row.slept_well != null &&
+        row.travelling != null &&
+        row.stressed != null;
+      if (!allAnswered) {
+        journal = {
+          today: isoDate,
+          initial: {
+            slept_well: (row?.slept_well as boolean | null | undefined) ?? null,
+            travelling: (row?.travelling as boolean | null | undefined) ?? null,
+            stressed: (row?.stressed as boolean | null | undefined) ?? null,
+          },
+        };
+      }
+    }
+  }
+
   return (
     <div className="mx-auto max-w-5xl px-5 py-12 md:px-12 md:py-16">
       {missingProfileFields.length > 0 && (
         <div className="mb-8">
           <ProfileCompletenessBanner missingFields={missingProfileFields} />
+        </div>
+      )}
+
+      {journal && (
+        <div className="mb-6">
+          <DailyJournalCard today={journal.today} initial={journal.initial} />
         </div>
       )}
 

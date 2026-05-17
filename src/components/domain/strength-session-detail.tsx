@@ -19,6 +19,11 @@ import { GlassCard } from "@/components/ui/glass-card";
 import { HairlineCard } from "@/components/ui/hairline-card";
 import { AdvisoryBlock } from "@/components/ui/advisory-block";
 import { EvidenceCitation } from "@/components/data/evidence-citation";
+import { ExerciseSetLogger } from "@/components/domain/exercise-set-logger";
+import {
+  PostSessionSurveyModal,
+  type PostSessionFeel,
+} from "@/components/domain/post-session-survey-modal";
 import type {
   SessionBlock,
   StrengthSessionDetail as StrengthSessionDetailModel,
@@ -50,6 +55,11 @@ export function StrengthSessionDetail({
   const [completing, setCompleting] = useState(false);
   const [completed, setCompleted] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // T09: opt-in per-set logging mode. "all" = legacy mark-complete only.
+  const [loggingMode, setLoggingMode] = useState<"all" | "per_set">("all");
+  // T08: completion id used to PATCH the post_session_feel after Mark Complete.
+  const [completionId, setCompletionId] = useState<string | null>(null);
+  const [surveyOpen, setSurveyOpen] = useState(false);
 
   const expandedDuration = useMemo(() => {
     const h = Math.floor(session.totalDurationMin / 60);
@@ -73,13 +83,26 @@ export function StrengthSessionDetail({
           const j = await res.json().catch(() => ({}));
           throw new Error(j.error || "Couldn't save. We'll retry.");
         }
+        const j = (await res.json()) as {
+          completion?: { id?: string };
+        };
+        if (j.completion?.id) setCompletionId(j.completion.id);
       }
       setCompleted(true);
+      // T08: open the survey if we have a completion id to PATCH onto.
+      // When the parent owns onMarkComplete, it can render its own survey.
+      if (!onMarkComplete) setSurveyOpen(true);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Couldn't save. We'll retry.");
     } finally {
       setCompleting(false);
     }
+  }
+
+  function handleSurveySaved(_feel: PostSessionFeel) {
+    // No-op — survey modal closes itself; computeTodaysPlan will pick it
+    // up on the next /dashboard render.
+    void _feel;
   }
 
   function toggleTravel() {
@@ -123,6 +146,21 @@ export function StrengthSessionDetail({
             >
               Travel mode {travelMode ? "on" : "off"}
             </button>
+            <button
+              type="button"
+              onClick={() =>
+                setLoggingMode((m) => (m === "all" ? "per_set" : "all"))
+              }
+              aria-pressed={loggingMode === "per_set"}
+              className={
+                "rounded-sm border px-2.5 py-1 font-sans text-[12px] " +
+                (loggingMode === "per_set"
+                  ? "border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent-dark)]"
+                  : "border-[var(--border)] bg-transparent text-[var(--text-secondary)] hover:border-[var(--border-strong)]")
+              }
+            >
+              Log per-set {loggingMode === "per_set" ? "on" : "off"}
+            </button>
           </div>
         </div>
       </GlassCard>
@@ -147,7 +185,12 @@ export function StrengthSessionDetail({
 
       {/* Blocks */}
       {session.blocks.map((block) => (
-        <BlockSection key={block.kind} block={block} />
+        <BlockSection
+          key={block.kind}
+          block={block}
+          loggingMode={loggingMode}
+          completionId={completionId}
+        />
       ))}
 
       {/* Mark complete */}
@@ -190,11 +233,28 @@ export function StrengthSessionDetail({
           </span>
         ))}
       </p>
+
+      {completionId ? (
+        <PostSessionSurveyModal
+          open={surveyOpen}
+          completionId={completionId}
+          onDismiss={() => setSurveyOpen(false)}
+          onSaved={handleSurveySaved}
+        />
+      ) : null}
     </div>
   );
 }
 
-function BlockSection({ block }: { block: SessionBlock }) {
+function BlockSection({
+  block,
+  loggingMode,
+  completionId,
+}: {
+  block: SessionBlock;
+  loggingMode: "all" | "per_set";
+  completionId: string | null;
+}) {
   if (block.exercises.length === 0) {
     if (block.kind === "main") {
       // Hidden when race-week-locked — the AdvisoryBlock above explains it.
@@ -252,10 +312,29 @@ function BlockSection({ block }: { block: SessionBlock }) {
                   Cue: {ex.cue}
                 </p>
               )}
+              {loggingMode === "per_set" && block.kind === "main" ? (
+                <ExerciseSetLogger
+                  exerciseId={ex.id}
+                  completionId={completionId}
+                  setsCount={parseSetsCount(ex.sets_reps)}
+                  restSeconds={ex.rest_seconds}
+                  prescribedRpe={ex.rpe_target}
+                />
+              ) : null}
             </HairlineCard>
           </li>
         ))}
       </ul>
     </section>
   );
+}
+
+/** Parse the leading number from "4×8", "5x5", "3 x 10" — defaults to 3 if unparseable. */
+function parseSetsCount(setsReps: string): number {
+  const m = /^\s*(\d+)\s*[x×]/i.exec(setsReps);
+  if (m) {
+    const n = parseInt(m[1], 10);
+    if (Number.isFinite(n) && n >= 1 && n <= 20) return n;
+  }
+  return 3;
 }
