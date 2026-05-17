@@ -9,6 +9,7 @@ import { RaceCountdownCard } from "@/components/domain/race-countdown-card";
 import { PreSessionPreviewCard } from "@/components/domain/pre-session-preview-card";
 import { TodaysPlanTile } from "@/components/domain/todays-plan-tile";
 import { DailyJournalCard } from "@/components/domain/daily-journal-card";
+import { EveningGateInverse } from "@/components/domain/evening-gate-inverse";
 import { AdvisoryBlock } from "@/components/ui/advisory-block";
 import {
   getPlannedSession,
@@ -195,9 +196,12 @@ export default async function DashboardPage() {
     }
   }
 
-  // T12: F11 pre-session preview takes the dashboard top slot after 18:00
-  // local on a day where tomorrow has a planned session. Otherwise the
-  // F14 race countdown card keeps the slot.
+  // F11: pre-session preview takes the dashboard top slot when tomorrow
+  // has a planned session. Server fetches the data eagerly; the card
+  // gates its own rendering on the browser's local hour (≥ 18) via
+  // gateByClientHour. This fixes the post-2.0 audit followup #4 — the
+  // old server-side `getHours()` used UTC and surfaced the card at
+  // 01:00 local for GMT+7 athletes.
   let preSession:
     | {
         tomorrowDate: string;
@@ -207,33 +211,29 @@ export default async function DashboardPage() {
     | null = null;
   if (user) {
     const now = new Date();
-    const isEvening = now.getHours() >= 18;
-    if (isEvening) {
-      const tomorrow = new Date(now);
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      const tomorrowDate = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, "0")}-${String(tomorrow.getDate()).padStart(2, "0")}`;
-      const admin = createAdminClient();
-      const tomorrowPlanned = await getPlannedSession(user.id, tomorrowDate, admin);
-      const hasPlanned = tomorrowPlanned.sessions.some((s) => s.type !== "rest");
-      if (hasPlanned) {
-        // Existing check-in row, if any (so the picker shows the prior choice).
-        const { data: existing } = await admin
-          .from("recovery_check_in")
-          .select("feeling")
-          .eq("athlete_id", user.id)
-          .eq("check_in_date", tomorrowDate)
-          .maybeSingle();
-        preSession = {
-          tomorrowDate,
-          tomorrowSessions: tomorrowPlanned.sessions,
-          initialFeeling:
-            existing?.feeling === "sharp" ||
-            existing?.feeling === "okay" ||
-            existing?.feeling === "tired"
-              ? (existing.feeling as Feeling)
-              : null,
-        };
-      }
+    const tomorrow = new Date(now);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowDate = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, "0")}-${String(tomorrow.getDate()).padStart(2, "0")}`;
+    const admin = createAdminClient();
+    const tomorrowPlanned = await getPlannedSession(user.id, tomorrowDate, admin);
+    const hasPlanned = tomorrowPlanned.sessions.some((s) => s.type !== "rest");
+    if (hasPlanned) {
+      const { data: existing } = await admin
+        .from("recovery_check_in")
+        .select("feeling")
+        .eq("athlete_id", user.id)
+        .eq("check_in_date", tomorrowDate)
+        .maybeSingle();
+      preSession = {
+        tomorrowDate,
+        tomorrowSessions: tomorrowPlanned.sessions,
+        initialFeeling:
+          existing?.feeling === "sharp" ||
+          existing?.feeling === "okay" ||
+          existing?.feeling === "tired"
+            ? (existing.feeling as Feeling)
+            : null,
+      };
     }
   }
 
@@ -334,21 +334,26 @@ export default async function DashboardPage() {
         </div>
       )}
 
-      {/* T12 priority: F11 pre-session preview takes the top slot when
-          available; F14 countdown takes it otherwise. */}
-      {preSession ? (
+      {/* F11 fix (audit followup #4): server renders both. Client decides
+          on mount. PreSessionPreviewCard shows itself only when browser
+          local hour ≥ 18; until then RaceCountdownCard owns the slot. */}
+      {preSession && (
         <div className="mb-10">
           <PreSessionPreviewCard
             tomorrowDate={preSession.tomorrowDate}
             tomorrowSessions={preSession.tomorrowSessions}
             initialFeeling={preSession.initialFeeling}
+            gateByClientHour={18}
           />
         </div>
-      ) : primaryRace ? (
+      )}
+      {primaryRace && (
         <div className="mb-10">
-          <RaceCountdownCard race={primaryRace} />
+          <EveningGateInverse hour={preSession ? 18 : null}>
+            <RaceCountdownCard race={primaryRace} />
+          </EveningGateInverse>
         </div>
-      ) : null}
+      )}
 
       <p className="mb-2 font-sans text-[11px] font-medium tracking-[0.08em] text-[var(--text-muted)] [font-variant:small-caps]">
         This week&apos;s check · May 4–10, 2026
