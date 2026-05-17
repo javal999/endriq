@@ -8,6 +8,7 @@ import { describe, it, expect } from "vitest";
 function isActive(pathname: string, href: string): boolean {
   if (href === "/dashboard") return pathname === "/dashboard" || pathname === "/";
   if (href === "/week") return pathname.startsWith("/week") || pathname.startsWith("/report");
+  if (href === "/session/strength") return pathname.startsWith("/session");
   if (href === "/race") return pathname.startsWith("/race");
   if (href === "/settings") return pathname.startsWith("/settings");
   return pathname === href;
@@ -24,6 +25,11 @@ describe("BottomNav active classifier", () => {
     expect(isActive("/report/abc/2026-05-12", "/week")).toBe(true);
   });
 
+  it("/session/strength and /session/<uuid> both highlight the Strength tab", () => {
+    expect(isActive("/session/strength", "/session/strength")).toBe(true);
+    expect(isActive("/session/abc-123", "/session/strength")).toBe(true);
+  });
+
   it("/race and /race/fitness both highlight the Race tab", () => {
     expect(isActive("/race", "/race")).toBe(true);
     expect(isActive("/race/fitness", "/race")).toBe(true);
@@ -34,9 +40,10 @@ describe("BottomNav active classifier", () => {
     expect(isActive("/settings/training-pattern", "/settings")).toBe(true);
   });
 
-  it("/auth pages do not match any of the four tabs", () => {
+  it("/auth pages do not match any of the five tabs", () => {
     expect(isActive("/auth/login", "/dashboard")).toBe(false);
     expect(isActive("/auth/login", "/week")).toBe(false);
+    expect(isActive("/auth/login", "/session/strength")).toBe(false);
     expect(isActive("/auth/login", "/race")).toBe(false);
     expect(isActive("/auth/login", "/settings")).toBe(false);
   });

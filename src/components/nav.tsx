@@ -54,10 +54,12 @@ export async function Nav() {
             <LocaleSwitch currentLocale={locale} />
           </div>
           <nav aria-label="Primary" className="hidden items-center gap-6 md:flex">
-            <ul className="flex gap-8">
+            <ul className="flex gap-6">
               {[
                 { href: "/dashboard", label: t("nav.home") },
                 { href: weekHref, label: t("nav.week") },
+                { href: "/session/strength", label: t("nav.strength") },
+                { href: "/race", label: t("nav.race") },
                 { href: "/learn", label: t("nav.learn") },
                 { href: "/settings", label: t("nav.settings") },
                 { href: "/support", label: t("nav.support") },

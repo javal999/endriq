@@ -51,6 +51,32 @@ export default async function SettingsPage({ searchParams }: Props) {
     <div className="mx-auto max-w-2xl px-5 py-12 md:px-8">
       <h1 className="font-sans text-xl font-bold tracking-tight">Settings</h1>
 
+      {/* Mobile-reachable quick links — entry points that don't have a
+          dedicated tab in BottomNav. Renders inline on every viewport. */}
+      <nav
+        aria-label="Quick links"
+        className="mt-4 flex flex-wrap gap-2 border-b border-[var(--border)] pb-4"
+      >
+        <Link
+          href="/learn"
+          className="inline-flex min-h-11 items-center rounded-sm border border-[var(--border)] px-3 font-sans text-[13px] font-medium text-[var(--text-secondary)] hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]"
+        >
+          Learn methodology →
+        </Link>
+        <Link
+          href="/race/fitness"
+          className="inline-flex min-h-11 items-center rounded-sm border border-[var(--border)] px-3 font-sans text-[13px] font-medium text-[var(--text-secondary)] hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]"
+        >
+          Fitness trend →
+        </Link>
+        <Link
+          href="/support"
+          className="inline-flex min-h-11 items-center rounded-sm border border-[var(--border)] px-3 font-sans text-[13px] font-medium text-[var(--text-secondary)] hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]"
+        >
+          Support →
+        </Link>
+      </nav>
+
       {!stravaEnvReady ? (
         <div
           className="mt-6 rounded border border-[var(--border)] bg-[rgba(184,122,10,0.08)] px-4 py-3 text-[13px] leading-relaxed text-[var(--text-secondary)]"
