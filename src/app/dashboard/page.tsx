@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { isoMondayLocal } from "@/lib/report/date";
 import { citationToLink } from "@/lib/data/citations";
 import { ProfileCompletenessBanner } from "@/components/profile-completeness-banner";
+import { RaceCountdownCard } from "@/components/domain/race-countdown-card";
 
 export default async function DashboardPage() {
   const week = isoMondayLocal();
@@ -44,6 +46,28 @@ export default async function DashboardPage() {
   const gabbettLink = citationToLink("gabbett_2016");
   const fyfeLink = citationToLink("fyfe_2014");
 
+  // T10: primary race for countdown card. Admin client so RLS doesn't
+  // interfere with the read (athlete_id scoping is explicit below).
+  let primaryRace:
+    | { name?: string; race_date: string; race_type: string | null }
+    | null = null;
+  if (user) {
+    const admin = createAdminClient();
+    const { data } = await admin
+      .from("races")
+      .select("name, race_date, race_type")
+      .eq("athlete_id", user.id)
+      .eq("is_primary", true)
+      .maybeSingle();
+    if (data?.race_date) {
+      primaryRace = {
+        name: typeof data.name === "string" ? data.name : undefined,
+        race_date: String(data.race_date),
+        race_type: typeof data.race_type === "string" ? data.race_type : null,
+      };
+    }
+  }
+
   return (
     <div className="mx-auto max-w-5xl px-5 py-12 md:px-12 md:py-16">
       {missingProfileFields.length > 0 && (
@@ -51,6 +75,13 @@ export default async function DashboardPage() {
           <ProfileCompletenessBanner missingFields={missingProfileFields} />
         </div>
       )}
+
+      {primaryRace && (
+        <div className="mb-10">
+          <RaceCountdownCard race={primaryRace} />
+        </div>
+      )}
+
       <p className="mb-2 font-sans text-[11px] font-medium tracking-[0.08em] text-[var(--text-muted)] [font-variant:small-caps]">
         This week&apos;s check · May 4–10, 2026
       </p>
