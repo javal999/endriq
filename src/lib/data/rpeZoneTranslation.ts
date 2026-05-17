@@ -117,15 +117,20 @@ export const LABEL_TOKENS: Readonly<Record<string, CanonicalLabel>> = {
  * Canonical label → RPE row mapping. Used by interpretRun to look up the
  * implied RPE/HR/zone when the coach only said "easy".
  */
+/**
+ * Index into RPE_ZONE_TABLE for each canonical label. Rows ordered easy→hard:
+ *   0 = recovery (very_easy), 1 = easy, 2 = moderate, 3 = tempo,
+ *   4 = interval (hard),     5 = repetition (max).
+ */
 export const LABEL_TO_RPE_ROW: Readonly<Record<CanonicalLabel, number>> = {
-  recovery: 1, // row 0
-  easy: 0,
-  long: 0,
-  moderate: 1,
-  tempo: 2,
-  interval: 3,
-  drill: 0,
-  strides: 3,
+  recovery: 0,
+  easy: 1,
+  long: 1,
+  moderate: 2,
+  tempo: 3,
+  interval: 4,
+  drill: 1, // drills run at easy pace
+  strides: 4, // short fast efforts ~ interval intensity
 };
 
 export const RPE_ZONE_TABLE: ReadonlyArray<RpeZoneRow> = [
