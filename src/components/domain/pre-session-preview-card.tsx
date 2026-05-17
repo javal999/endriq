@@ -15,7 +15,7 @@
  *       PHASE-2.0-BUILD.md T12 steps 3-4 + 7.
  */
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { GlassCard } from "@/components/ui/glass-card";
 import { FeelingButtonRow } from "@/components/inputs/feeling-button-row";
@@ -36,6 +36,16 @@ export interface PreSessionPreviewCardProps {
   initialFeeling?: Feeling | null;
   /** Locale for copy. */
   locale?: "en" | "id";
+  /**
+   * F11 TZ fix (post-2.0 audit followup #4): gate by the **browser's local
+   * hour**, not the server's. When true, the card only mounts after the
+   * client confirms local hour ≥ this threshold (default 18 = 6pm).
+   *
+   * The server is free to fetch tomorrow's plan eagerly; this guard
+   * prevents the card from rendering at 01:00 local in GMT+7, which is
+   * what the server-side `new Date().getHours() >= 18` UTC check produced.
+   */
+  gateByClientHour?: number;
 }
 
 const HEADING_EN: Record<Feeling | "default", string> = {
@@ -49,12 +59,22 @@ export function PreSessionPreviewCard({
   tomorrowDate,
   tomorrowSessions,
   initialFeeling = null,
+  gateByClientHour,
 }: PreSessionPreviewCardProps) {
   const router = useRouter();
   const [feeling, setFeeling] = useState<Feeling | null>(initialFeeling);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  // F11 TZ fix: when the parent passes `gateByClientHour`, the card only
+  // mounts after the client confirms the local hour clears the threshold.
+  const [clientPassesGate, setClientPassesGate] = useState(
+    gateByClientHour == null,
+  );
+  useEffect(() => {
+    if (gateByClientHour == null) return;
+    setClientPassesGate(new Date().getHours() >= gateByClientHour);
+  }, [gateByClientHour]);
 
   const swap = feeling ? planSwap(feeling, tomorrowSessions) : null;
 
@@ -82,6 +102,8 @@ export function PreSessionPreviewCard({
     }
     startTransition(() => router.refresh());
   }
+
+  if (!clientPassesGate) return null;
 
   return (
     <>
