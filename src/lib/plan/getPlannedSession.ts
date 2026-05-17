@@ -114,6 +114,77 @@ export async function getTypicalWeekPattern(
   return (await fetchTypicalWeek(db, athleteId)) ?? [];
 }
 
+/**
+ * Batch read — sessions for every date in [startIso, endInclusiveIso].
+ * Used by /race to compute 22 weeks × 7 days without firing 154 sequential
+ * supabase calls. Returns one entry per date (rest days included).
+ *
+ * Reads typical_week_pattern once and planned_sessions overrides in one
+ * range query; merges in memory. Same semantics as getPlannedSession
+ * date-by-date — overrides win.
+ */
+export async function getPlannedSessionsRange(
+  athleteId: string,
+  startIso: string,
+  endInclusiveIso: string,
+  db: SupabaseClient,
+): Promise<Map<string, PlannedSessionsForDate>> {
+  const [pattern, overridesRes] = await Promise.all([
+    fetchTypicalWeek(db, athleteId),
+    db
+      .from("planned_sessions")
+      .select(
+        "id, athlete_id, planned_date, sessions, interpretation_json, coach_instruction_text, updated_at",
+      )
+      .eq("athlete_id", athleteId)
+      .gte("planned_date", startIso)
+      .lte("planned_date", endInclusiveIso),
+  ]);
+
+  if (overridesRes.error) {
+    throw new Error(
+      `getPlannedSessionsRange.fetchOverrides: ${overridesRes.error.message}`,
+    );
+  }
+
+  const byDate = new Map<string, PlannedSessionsRow>();
+  for (const row of (overridesRes.data ?? []) as PlannedSessionsRow[]) {
+    if (typeof row.planned_date === "string") byDate.set(row.planned_date, row);
+  }
+
+  const out = new Map<string, PlannedSessionsForDate>();
+  const startMs = Date.parse(`${startIso}T00:00:00Z`);
+  const endMs = Date.parse(`${endInclusiveIso}T00:00:00Z`);
+  if (!Number.isFinite(startMs) || !Number.isFinite(endMs)) return out;
+
+  const days = Math.floor((endMs - startMs) / 86400000) + 1;
+  for (let i = 0; i < days; i += 1) {
+    const ts = startMs + i * 86400000;
+    const d = new Date(ts);
+    const iso = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
+
+    const override = byDate.get(iso);
+    if (override) {
+      out.set(iso, {
+        sessions: override.sessions ?? [],
+        isOverride: true,
+        coachInstructionText: override.coach_instruction_text,
+        interpretationJson: override.interpretation_json,
+      });
+      continue;
+    }
+    const weekday = isoDateToWeekday(iso);
+    const dayEntry = (pattern ?? []).find((p) => p.weekday === weekday);
+    out.set(iso, {
+      sessions: dayEntry?.sessions ?? [],
+      isOverride: false,
+      coachInstructionText: null,
+      interpretationJson: null,
+    });
+  }
+  return out;
+}
+
 function toIsoDate(d: string | Date): string {
   if (typeof d === "string") {
     if (/^\d{4}-\d{2}-\d{2}$/.test(d)) return d;

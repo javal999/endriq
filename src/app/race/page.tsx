@@ -9,7 +9,7 @@ import { RaceArc, type RaceArcWeek } from "@/components/domain/race-arc";
 import { PredictedFinishCard } from "@/components/domain/predicted-finish-card";
 import { AdvisoryBlock } from "@/components/ui/advisory-block";
 import { HairlineCard } from "@/components/ui/hairline-card";
-import { getPlannedSession } from "@/lib/plan/getPlannedSession";
+import { getPlannedSessionsRange } from "@/lib/plan/getPlannedSession";
 import type { PlannedSessionEntry } from "@/lib/plan/types";
 import type {
   AthleteHistorySlice,
@@ -232,26 +232,31 @@ export default async function RacePage() {
     }
   }
 
-  // Planned volume per week — derive from typical-week pattern by reading
-  // each Monday via getPlannedSession (handles overrides).
+  // Planned volume per week — batch-read the whole 22-week window in ONE
+  // typical-week pattern fetch + ONE planned_sessions range query, then
+  // compute weekly totals in memory. Previously this loop fired 154
+  // sequential supabase calls (22 weeks × 7 days × getPlannedSession),
+  // which is what made /race feel slow.
   const today = new Date();
   const todayMonday = isoMondayLocal(today);
+  const arcEndInclusive = addDaysIsoMonday(raceWeekStart, 6);
+  const dayMap = await getPlannedSessionsRange(
+    user.id,
+    arcStartWeek,
+    arcEndInclusive,
+    admin,
+  );
 
   const weeks: RaceArcWeek[] = [];
   for (let i = 0; i < 22; i++) {
     const weekStart = addDaysIsoMonday(arcStartWeek, i * 7);
-
-    // Planned km: sum sessions across the week.
     let plannedKm = 0;
     for (let d = 0; d < 7; d++) {
       const dayIso = addDaysIsoMonday(weekStart, d);
-      const day = await getPlannedSession(user.id, dayIso, admin);
-      plannedKm += estimateWeekKm(day.sessions);
+      const day = dayMap.get(dayIso);
+      if (day) plannedKm += estimateWeekKm(day.sessions);
     }
-
-    // Phase as of this week's Monday.
     const phase = currentPhase(race, new Date(`${weekStart}T00:00:00Z`));
-
     weeks.push({
       weekStart,
       plannedKm,

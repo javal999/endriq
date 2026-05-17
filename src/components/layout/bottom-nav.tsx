@@ -61,6 +61,42 @@ const TABS: Tab[] = [
     ),
   },
   {
+    href: "/session/strength",
+    label: "Strength",
+    icon: (active) => (
+      // Stylised dumbbell
+      <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden fill="none">
+        <rect
+          x="3"
+          y="9"
+          width="3"
+          height="6"
+          rx="0.6"
+          stroke="currentColor"
+          strokeWidth={active ? 2 : 1.6}
+        />
+        <rect
+          x="18"
+          y="9"
+          width="3"
+          height="6"
+          rx="0.6"
+          stroke="currentColor"
+          strokeWidth={active ? 2 : 1.6}
+        />
+        <rect
+          x="6"
+          y="10.5"
+          width="12"
+          height="3"
+          rx="0.6"
+          stroke="currentColor"
+          strokeWidth={active ? 2 : 1.6}
+        />
+      </svg>
+    ),
+  },
+  {
     href: "/race",
     label: "Race",
     icon: (active) => (
@@ -108,6 +144,7 @@ const TABS: Tab[] = [
 function isActive(pathname: string, href: string): boolean {
   if (href === "/dashboard") return pathname === "/dashboard" || pathname === "/";
   if (href === "/week") return pathname.startsWith("/week") || pathname.startsWith("/report");
+  if (href === "/session/strength") return pathname.startsWith("/session");
   if (href === "/race") return pathname.startsWith("/race");
   if (href === "/settings") return pathname.startsWith("/settings");
   return pathname === href;
