@@ -5,6 +5,26 @@ import { checkLimit, shareCardLimit } from "@/lib/ratelimit";
 
 export const runtime = "nodejs";
 
+/**
+ * Variant of the share card.
+ *   - full       : the existing card. Headline derived from findings — may
+ *                   surface "too much hard" / "load spike" / etc. Fine for
+ *                   the athlete's own social posts.
+ *   - coach_safe : positive aggregate headline only. No finding text.
+ *                   Distance + intensity bars still shown.
+ */
+type ShareVariant = "full" | "coach_safe";
+
+function parseVariant(s: string | null): ShareVariant {
+  return s === "coach_safe" ? "coach_safe" : "full";
+}
+
+function coachSafeHeadline(snap: ShareCardSnapshot): string {
+  // Hard-coded copy: positive aggregate, no finding text. Mirrors the
+  // share-snapshot inputs we have without inventing a phase / plan claim.
+  return `${snap.distanceKmLabel} · ${snap.sessions} sessions · ${snap.pctEasy}% easy. Keeping the pattern.`;
+}
+
 function siteHost(): string {
   const raw = process.env.NEXT_PUBLIC_APP_URL?.trim();
   if (!raw) return "enduranceiq.levitations.id";
@@ -63,7 +83,29 @@ export async function GET(_req: Request, segmentData: Props) {
     const admin = createAdminClient();
     const { data } = await admin.from("weekly_analyses").select("week_start, total_distance_meters, total_duration_seconds, total_sessions, pct_zone1_2, pct_zone3, pct_zone4_5, load_ratio, findings").eq("share_id", shareId).maybeSingle();
     if (!data) return new Response("Not found", { status: 404 });
-    return cardResponse(shareSnapshotFromAnalysisRow(data), host);
+
+    // T14 — variant selection. ?variant=coach_safe wins over the cookie;
+    // otherwise default to "full". The cookie is set by the share modal
+    // so OG meta tags render the variant the athlete last picked.
+    const url = new URL(_req.url);
+    const queryVariant = parseVariant(url.searchParams.get("variant"));
+    const cookieVariant = parseVariant(
+      _req.headers
+        .get("cookie")
+        ?.split(";")
+        .map((c) => c.trim())
+        .find((c) => c.startsWith("eiq_share_variant="))
+        ?.split("=")[1] ?? null,
+    );
+    const variant: ShareVariant = url.searchParams.has("variant")
+      ? queryVariant
+      : cookieVariant;
+
+    const snap = shareSnapshotFromAnalysisRow(data);
+    if (variant === "coach_safe") {
+      snap.headline = coachSafeHeadline(snap);
+    }
+    return cardResponse(snap, host);
   } catch (e) {
     return new Response(e instanceof Error ? e.message : "share_card_failed", { status: 500 });
   }

@@ -1,7 +1,27 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
+
+type ShareVariant = "full" | "coach_safe";
+
+const VARIANT_COOKIE = "eiq_share_variant";
+
+function readVariantCookie(): ShareVariant {
+  if (typeof document === "undefined") return "full";
+  const raw = document.cookie
+    .split(";")
+    .map((c) => c.trim())
+    .find((c) => c.startsWith(`${VARIANT_COOKIE}=`));
+  return raw?.split("=")[1] === "coach_safe" ? "coach_safe" : "full";
+}
+
+function writeVariantCookie(v: ShareVariant) {
+  if (typeof document === "undefined") return;
+  // 1 year, root path, lax samesite, secure when https.
+  const secure = window.location.protocol === "https:" ? "; Secure" : "";
+  document.cookie = `${VARIANT_COOKIE}=${v}; Max-Age=${365 * 24 * 60 * 60}; Path=/; SameSite=Lax${secure}`;
+}
 
 export function ShareWeeklyButton({
   athleteId,
@@ -14,11 +34,23 @@ export function ShareWeeklyButton({
 }) {
   const t = useTranslations("report");
   const dlg = useRef<HTMLDialogElement>(null);
-  // Prefer the share_id URL (doesn't expose athlete ID); fall back to legacy URL
-  const pngPath = shareId
+  const [variant, setVariant] = useState<ShareVariant>("full");
+  useEffect(() => {
+    setVariant(readVariantCookie());
+  }, []);
+  // T14 — append ?variant for non-default so OG previewers + the modal img
+  // both pick up the user's choice. Cookie carries the same value so the
+  // OG meta-rendered card stays consistent on share-out.
+  const pngPath = (shareId
     ? `/api/share/${encodeURIComponent(shareId)}`
-    : `/api/share/weekly/${encodeURIComponent(athleteId)}/${encodeURIComponent(weekStart)}`;
+    : `/api/share/weekly/${encodeURIComponent(athleteId)}/${encodeURIComponent(weekStart)}`) +
+    (variant === "coach_safe" ? "?variant=coach_safe" : "");
   const [copied, setCopied] = useState(false);
+
+  const setAndPersistVariant = useCallback((v: ShareVariant) => {
+    setVariant(v);
+    writeVariantCookie(v);
+  }, []);
 
   const open = useCallback(() => {
     dlg.current?.showModal();
@@ -73,11 +105,48 @@ export function ShareWeeklyButton({
           </button>
         </div>
 
+        {/* T14 — variant toggle. Cookie persists choice across renders. */}
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={() => setAndPersistVariant("full")}
+            aria-pressed={variant === "full"}
+            className={
+              "rounded border px-3 py-2 font-sans text-[12px] transition-colors " +
+              (variant === "full"
+                ? "border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent-dark)]"
+                : "border-[var(--border)] bg-transparent text-[var(--text-secondary)] hover:border-[var(--border-strong)]")
+            }
+          >
+            Full
+            <span className="mt-0.5 block text-[10px] font-normal text-[var(--text-muted)]">
+              Includes the week&apos;s top finding
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setAndPersistVariant("coach_safe")}
+            aria-pressed={variant === "coach_safe"}
+            className={
+              "rounded border px-3 py-2 font-sans text-[12px] transition-colors " +
+              (variant === "coach_safe"
+                ? "border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent-dark)]"
+                : "border-[var(--border)] bg-transparent text-[var(--text-secondary)] hover:border-[var(--border-strong)]")
+            }
+          >
+            Coach-safe
+            <span className="mt-0.5 block text-[10px] font-normal text-[var(--text-muted)]">
+              Aggregates only, no finding text
+            </span>
+          </button>
+        </div>
+
         <div className="mt-3 max-h-[min(70vh,520px)] overflow-auto rounded border border-[var(--border)] bg-[var(--surface-raised)] p-2">
           {/* eslint-disable-next-line @next/next/no-img-element -- preview of dynamic OG PNG */}
           <img
+            key={variant}
             src={pngPath}
-            alt="Weekly training summary card"
+            alt={`Weekly training summary card — ${variant === "coach_safe" ? "coach-safe variant" : "full variant"}`}
             className="mx-auto max-h-[480px] w-auto max-w-full object-contain"
             width={1080}
             height={1080}
