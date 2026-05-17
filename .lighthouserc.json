@@ -1,0 +1,30 @@
+{
+  "ci": {
+    "collect": {
+      "startServerCommand": "npm run start",
+      "startServerReadyPattern": "ready - started server",
+      "url": [
+        "http://localhost:3000/",
+        "http://localhost:3000/report/demo"
+      ],
+      "numberOfRuns": 1,
+      "settings": {
+        "preset": "desktop"
+      }
+    },
+    "assert": {
+      "assertions": {
+        "categories:performance": ["warn", { "minScore": 0.9 }],
+        "categories:accessibility": ["error", { "minScore": 1.0 }]
+      }
+    },
+    "upload": {
+      "target": "temporary-public-storage"
+    }
+  },
+  "_phase_2_0_notes": [
+    "Routes /week and /coach/[uuid] are added to `ci.collect.url` once they ship in T08 and T13 respectively (PHASE-2.0-BUILD.md §6).",
+    "Performance threshold is `warn` until baseline is captured in T16; flip to `error` then.",
+    "Accessibility is `error` at 1.0 because the design system targets WCAG 2.1 AA-strict (UI-DESIGN §5)."
+  ]
+}

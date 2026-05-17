@@ -6,10 +6,19 @@
   },
   "include": [
     "next-env.d.ts",
-    "**/*.ts",
-    "**/*.tsx",
-    "**/*.mts",
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "src/**/*.mts",
     ".next/types/**/*.ts"
   ],
-  "exclude": ["node_modules", ".next/dev"]
+  "exclude": [
+    "node_modules",
+    ".next/dev",
+    "**/* 2.ts",
+    "**/* 3.ts",
+    "**/* 2.tsx",
+    "**/* 3.tsx",
+    "**/* 2.d.ts",
+    "**/* 3.d.ts"
+  ]
 }

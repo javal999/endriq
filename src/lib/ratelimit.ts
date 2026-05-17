@@ -46,6 +46,9 @@ export const corosSyncLimit = makeLimiter(redis, 3, "5 m");
 /** Share card renders: 30 requests per minute by IP. */
 export const shareCardLimit = makeLimiter(redis, 30, "1 m");
 
+/** Race CRUD writes (POST/PATCH/DELETE): 20 per minute per user. */
+export const raceWriteLimit = makeLimiter(redis, 20, "1 m");
+
 /**
  * Check a rate limit. Returns { allowed: true } when the limiter is null
  * (Redis not configured) so the app degrades gracefully.

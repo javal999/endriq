@@ -12,7 +12,47 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Non-source paths that live in this repo root but are not the app:
+    ".stryker-tmp/**",
+    ".cursor/**",
+    "Prototypes/**",
+    "Tools/**",
+    "Assets/**",
+    "Deliverables/**",
+    "Knowledge/**",
+    "Tasks/**",
+    "projects/**",
+    "skills/**",
+    "scripts/**",
+    "e2e/**",
+    "test-results/**",
+    "supabase/migrations/**",
   ]),
+  // F9 — getPlannedSession (lib/plan/) is the only legal read path for
+  // planned_sessions and typical_week_pattern (architecture A2). Block
+  // direct table access from anywhere else.
+  {
+    files: [
+      "src/**/*.ts",
+      "src/**/*.tsx",
+    ],
+    ignores: ["src/lib/plan/**", "src/app/api/planned-session/**"],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector: "CallExpression[callee.property.name='from'][arguments.0.value='planned_sessions']",
+          message:
+            "Read planned_sessions only via @/lib/plan/getPlannedSession (architecture A2). For mutations use /api/planned-session.",
+        },
+        {
+          selector: "Literal[value='typical_week_pattern']",
+          message:
+            "Access typical_week_pattern only via @/lib/plan/getPlannedSession (architecture A2).",
+        },
+      ],
+    },
+  },
 ]);
 
 export default eslintConfig;

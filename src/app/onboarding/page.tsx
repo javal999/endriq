@@ -5,6 +5,28 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Toast, useToast } from "@/components/toast";
+import { TypicalWeekPlanner } from "@/components/domain/typical-week-planner";
+import type { TypicalWeekPattern } from "@/lib/plan/types";
+
+type Persona = "coached" | "self_coached" | "hybrid";
+
+const PERSONA_OPTIONS: { value: Persona; label: string; description: string }[] = [
+  {
+    value: "coached",
+    label: "Coached",
+    description: "I work with a running or tri coach who gives me my plan.",
+  },
+  {
+    value: "self_coached",
+    label: "Self-coached",
+    description: "I plan my own training using research and experience.",
+  },
+  {
+    value: "hybrid",
+    label: "Hybrid",
+    description: "Mostly self-directed; I check in with a coach occasionally.",
+  },
+];
 
 const RACE_TYPE_OPTIONS = [
   { value: "marathon", label: "Marathon" },
@@ -23,12 +45,14 @@ const SEX_OPTIONS = [
 
 export default function OnboardingPage() {
   const router = useRouter();
+  const [persona, setPersona] = useState<Persona>("self_coached");
   const [goalRaceType, setGoalRaceType] = useState("marathon");
   const [goalRaceDate, setGoalRaceDate] = useState("");
   const [goalWeeklyKm, setGoalWeeklyKm] = useState("");
   const [sex, setSex] = useState("");
   const [observedMaxHr, setObservedMaxHr] = useState("");
   const [hrRest, setHrRest] = useState("");
+  const [typicalWeek, setTypicalWeek] = useState<TypicalWeekPattern>([]);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const toast = useToast();
@@ -53,12 +77,14 @@ export default function OnboardingPage() {
       const { error: upsertErr } = await supabase
         .from("athletes")
         .update({
+          persona,
           goal_race_type: goalRaceType,
           goal_race_date: raceDateRequired && goalRaceDate ? goalRaceDate : null,
           goal_weekly_km: goalWeeklyKm ? Number(goalWeeklyKm) : null,
           sex: sex || null,
           observed_max_hr: maxHrNum && maxHrNum >= 120 && maxHrNum <= 220 ? maxHrNum : null,
           hr_rest: hrRestNum && hrRestNum >= 30 && hrRestNum <= 90 ? hrRestNum : null,
+          typical_week_pattern: typicalWeek,
           onboarding_complete: true,
         })
         .eq("id", user.id);
@@ -66,6 +92,33 @@ export default function OnboardingPage() {
       if (upsertErr) {
         setError(upsertErr.message);
         return;
+      }
+
+      // Seed a primary race row from the onboarding fields (F14.0). Skipped
+      // silently for general_fitness or when no date was provided. The legacy
+      // athletes.goal_race_* columns above remain populated as a compatibility
+      // shim per PRD §5.7 ("dropped in Phase 2.1").
+      const KNOWN_RACE_TYPES = new Set([
+        "marathon", "half_marathon", "10k", "5k",
+        "ultramarathon", "ironman_70_3", "ironman_full",
+      ]);
+      if (raceDateRequired && goalRaceDate && goalRaceType && goalRaceType !== "general_fitness") {
+        const raceType = KNOWN_RACE_TYPES.has(goalRaceType) ? goalRaceType : "other_endurance";
+        const label = raceType.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+        await fetch("/api/race", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            name: `${label} ${goalRaceDate}`,
+            race_type: raceType,
+            race_date: goalRaceDate,
+            is_primary: true,
+          }),
+        }).catch(() => {
+          // Non-fatal — the athletes.goal_race_* columns still capture the
+          // intent, and the next migration replay (or manual /settings/races
+          // visit) can promote them. Don't block onboarding completion.
+        });
       }
 
       toast.show("Saved — now connect Strava to start receiving reports.");
@@ -79,7 +132,7 @@ export default function OnboardingPage() {
   return (
     <>
     {toast.message && <Toast message={toast.message} onDismiss={toast.dismiss} />}
-    <div className="mx-auto max-w-lg px-5 py-16 md:px-8">
+    <div className="mx-auto max-w-2xl px-5 py-16 md:px-8">
       <p className="font-sans text-[11px] font-medium uppercase tracking-[0.08em] text-[var(--text-muted)]">
         Step 1 of 2
       </p>
@@ -93,6 +146,46 @@ export default function OnboardingPage() {
       </p>
 
       <form onSubmit={(e) => void onSubmit(e)} className="mt-10 space-y-6">
+
+        {/* Persona */}
+        <fieldset>
+          <legend className="block font-sans text-[13px] font-medium text-[var(--text-primary)]">
+            How do you train?
+            <span className="ml-1 text-[var(--status-bad)]">*</span>
+          </legend>
+          <p className="mt-0.5 font-sans text-[12px] text-[var(--text-muted)]">
+            Helps us emphasise the surfaces you&apos;ll actually use. Changeable later in Settings.
+          </p>
+          <div className="mt-2 space-y-2">
+            {PERSONA_OPTIONS.map((o) => (
+              <label
+                key={o.value}
+                className={`flex cursor-pointer items-start gap-3 rounded border px-3 py-2 transition-colors ${
+                  persona === o.value
+                    ? "border-[var(--accent)] bg-[var(--accent-soft)]"
+                    : "border-[var(--border)] bg-[var(--surface)] hover:border-[var(--border-strong)]"
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="persona"
+                  value={o.value}
+                  checked={persona === o.value}
+                  onChange={() => setPersona(o.value)}
+                  className="mt-1"
+                />
+                <div>
+                  <span className="block font-sans text-[14px] font-medium text-[var(--text-primary)]">
+                    {o.label}
+                  </span>
+                  <span className="mt-0.5 block font-sans text-[12px] text-[var(--text-secondary)]">
+                    {o.description}
+                  </span>
+                </div>
+              </label>
+            ))}
+          </div>
+        </fieldset>
 
         {/* Goal race type */}
         <div>
@@ -236,6 +329,20 @@ export default function OnboardingPage() {
             </div>
           </div>
         </div>
+
+        {/* Typical-week grid (F9) */}
+        <fieldset>
+          <legend className="block font-sans text-[13px] font-medium text-[var(--text-primary)]">
+            Your typical training week
+          </legend>
+          <p className="mt-0.5 font-sans text-[12px] text-[var(--text-muted)]">
+            Tap each day to add session chips. We use this to plan strength
+            placement and check 48-hour buffers around heavy sessions.
+          </p>
+          <div className="mt-3">
+            <TypicalWeekPlanner value={typicalWeek} onChange={setTypicalWeek} />
+          </div>
+        </fieldset>
 
         {error ? (
           <p className="rounded border border-[var(--border)] bg-[rgba(196,75,63,0.06)] px-3 py-2 font-sans text-[13px] text-[var(--status-bad)]">
