@@ -6,6 +6,8 @@ import { StravaActions } from "./strava-actions";
 import { CorosActions } from "./coros-actions";
 import { ExperimentalStrengthToggle } from "./experimental-strength-toggle";
 import { RoastToggle } from "./roast-toggle";
+import { CoachLinkManager } from "@/components/domain/coach-link-manager";
+import { flags } from "@/lib/featureFlags";
 
 type Props = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -134,6 +136,40 @@ export default async function SettingsPage({ searchParams }: Props) {
               className="font-sans text-[13px] font-medium text-[var(--accent)] underline underline-offset-2"
             >
               Manage races →
+            </Link>
+          </p>
+        </div>
+      </section>
+
+      {flags.COACH_VIEW_PUBLIC && (
+        <section className="mt-10" aria-labelledby="coach-link-heading">
+          <h2 id="coach-link-heading" className="font-sans text-[15px] font-semibold">
+            Coach view
+          </h2>
+          <div className="mt-4 rounded border border-[var(--border)] bg-[var(--surface)] p-6">
+            <p className="mb-3 text-[13px] leading-relaxed text-[var(--text-secondary)]">
+              A read-only public URL your coach can open without signing up. Shows your
+              first name + weekly aggregates only; no email, no per-session HR.
+            </p>
+            <CoachLinkManager appUrl={appUrlConfigured ? process.env.NEXT_PUBLIC_APP_URL! : ""} />
+          </div>
+        </section>
+      )}
+
+      <section className="mt-10" aria-labelledby="usage-heading">
+        <h2 id="usage-heading" className="font-sans text-[15px] font-semibold">
+          Usage
+        </h2>
+        <div className="mt-4 rounded border border-[var(--border)] bg-[var(--surface)] p-6">
+          <p className="text-[13px] leading-relaxed text-[var(--text-secondary)]">
+            Check your AI quota and reset date.
+          </p>
+          <p className="mt-3">
+            <Link
+              href="/settings/usage"
+              className="font-sans text-[13px] font-medium text-[var(--accent)] underline underline-offset-2"
+            >
+              View usage →
             </Link>
           </p>
         </div>

@@ -105,6 +105,95 @@ export function paceRangeForVdot(
 }
 
 /**
+ * Daniels race-equivalency table — given a VDOT, the equivalent race time
+ * (in seconds) for the four standard distances. Used by predictedFinish
+ * (T11) to translate a known race time into a target-race prediction.
+ *
+ * Values match Daniels' published equivalency tables, rounded to integer
+ * seconds at the same 5-VDOT step as VDOT_PACE_TABLE.
+ */
+interface VdotRaceRow {
+  vdot: number;
+  /** Race time in seconds for each standard distance. */
+  fiveKm: number;
+  tenKm: number;
+  halfMarathon: number;
+  marathon: number;
+}
+
+const VDOT_RACE_TABLE: ReadonlyArray<VdotRaceRow> = [
+  { vdot: 30, fiveKm: 1840, tenKm: 3826, halfMarathon: 8464, marathon: 17357 },
+  { vdot: 35, fiveKm: 1623, tenKm: 3367, halfMarathon: 7430, marathon: 15234 },
+  { vdot: 40, fiveKm: 1450, tenKm: 2996, halfMarathon: 6593, marathon: 13513 },
+  { vdot: 45, fiveKm: 1311, tenKm: 2700, halfMarathon: 5921, marathon: 12121 },
+  { vdot: 50, fiveKm: 1197, tenKm: 2461, halfMarathon: 5368, marathon: 10980 },
+  { vdot: 55, fiveKm: 1103, tenKm: 2263, halfMarathon: 4914, marathon: 10039 },
+  { vdot: 60, fiveKm: 1024, tenKm: 2098, halfMarathon: 4533, marathon: 9252 },
+  { vdot: 65, fiveKm: 957, tenKm: 1958, halfMarathon: 4214, marathon: 8589 },
+  { vdot: 70, fiveKm: 899, tenKm: 1838, halfMarathon: 3940, marathon: 8020 },
+  { vdot: 75, fiveKm: 849, tenKm: 1734, halfMarathon: 3705, marathon: 7532 },
+  { vdot: 80, fiveKm: 806, tenKm: 1644, halfMarathon: 3499, marathon: 7106 },
+  { vdot: 85, fiveKm: 768, tenKm: 1565, halfMarathon: 3318, marathon: 6730 },
+];
+
+export type StandardRaceDistance = "5k" | "10k" | "half_marathon" | "marathon";
+
+const RACE_KEY_BY_DISTANCE: Record<StandardRaceDistance, keyof Omit<VdotRaceRow, "vdot">> = {
+  "5k": "fiveKm",
+  "10k": "tenKm",
+  half_marathon: "halfMarathon",
+  marathon: "marathon",
+};
+
+function raceBracket(vdot: number): [VdotRaceRow, VdotRaceRow] {
+  const clamped = Math.max(30, Math.min(85, vdot));
+  for (let i = 0; i < VDOT_RACE_TABLE.length - 1; i++) {
+    if (clamped >= VDOT_RACE_TABLE[i].vdot && clamped <= VDOT_RACE_TABLE[i + 1].vdot) {
+      return [VDOT_RACE_TABLE[i], VDOT_RACE_TABLE[i + 1]];
+    }
+  }
+  return [VDOT_RACE_TABLE[VDOT_RACE_TABLE.length - 2], VDOT_RACE_TABLE[VDOT_RACE_TABLE.length - 1]];
+}
+
+/**
+ * Returns the predicted race time (seconds) for a given VDOT + distance.
+ * Linear interpolation across bracketing rows.
+ */
+export function raceTimeForVdot(vdot: number, distance: StandardRaceDistance): number {
+  const [lo, hi] = raceBracket(vdot);
+  const t = hi.vdot === lo.vdot ? 0 : (vdot - lo.vdot) / (hi.vdot - lo.vdot);
+  const key = RACE_KEY_BY_DISTANCE[distance];
+  return Math.round(lerp(lo[key], hi[key], t));
+}
+
+/**
+ * Riegel race-time prediction (1981): T2 = T1 × (D2 / D1)^1.06.
+ * Returns seconds. Exponent 1.06 matches modern recreational-runner data
+ * (Vickers & Vertosick 2016 confirmed this remains a good baseline).
+ */
+export function riegelPredict(
+  fromDistanceKm: number,
+  fromTimeSec: number,
+  toDistanceKm: number,
+  exponent = 1.06,
+): number {
+  if (fromDistanceKm <= 0 || toDistanceKm <= 0 || fromTimeSec <= 0) return 0;
+  const ratio = toDistanceKm / fromDistanceKm;
+  return Math.round(fromTimeSec * Math.pow(ratio, exponent));
+}
+
+/**
+ * Distance in km for our standard race types. Used by the prediction layer
+ * to convert race_type → km input for Riegel/VDOT.
+ */
+export const STANDARD_RACE_KM: Record<StandardRaceDistance, number> = {
+  "5k": 5,
+  "10k": 10,
+  half_marathon: 21.0975,
+  marathon: 42.195,
+};
+
+/**
  * Infer VDOT from a recent race performance.
  *
  * Uses Daniels' velocity-VO2 relationship simplified to a closed form. Good

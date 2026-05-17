@@ -50,7 +50,7 @@ export async function generateWeeklyAnalysis(
   let pack: Awaited<ReturnType<typeof runWeeklyLlms>> | null = null;
 
   if (shouldRunLlm && payload.llmBundle) {
-    pack = await runWeeklyLlms(payload.llmBundle, payload.model);
+    pack = await runWeeklyLlms(payload.llmBundle, payload.model, db);
     llm_weekly_analysis = pack.llm_weekly_analysis;
     llm_intensity_explanation = pack.llm_intensity_explanation;
     llm_session_statuses = pack.llm_session_statuses;
@@ -76,6 +76,7 @@ export async function generateWeeklyAnalysis(
     pack = await runWeeklyLlms(
       { ...payload.llmBundle, roastEnabled: true },
       payload.model,
+      db,
     );
     // Keep existing coach narratives; only take the roast output
     pack = {

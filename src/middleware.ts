@@ -13,6 +13,7 @@ export async function middleware(request: NextRequest) {
     "/api/coros/status",
     "/api/coros/callback",
     "/support",
+    "/coach", // T13: F13 public coach view at /coach/[uuid]
   ];
 
   const pathname = request.nextUrl.pathname;
