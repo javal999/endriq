@@ -68,6 +68,33 @@ export default function OnboardingPage() {
         return;
       }
 
+      // Seed a primary race row from the onboarding fields (F14.0). Skipped
+      // silently for general_fitness or when no date was provided. The legacy
+      // athletes.goal_race_* columns above remain populated as a compatibility
+      // shim per PRD §5.7 ("dropped in Phase 2.1").
+      const KNOWN_RACE_TYPES = new Set([
+        "marathon", "half_marathon", "10k", "5k",
+        "ultramarathon", "ironman_70_3", "ironman_full",
+      ]);
+      if (raceDateRequired && goalRaceDate && goalRaceType && goalRaceType !== "general_fitness") {
+        const raceType = KNOWN_RACE_TYPES.has(goalRaceType) ? goalRaceType : "other_endurance";
+        const label = raceType.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+        await fetch("/api/race", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            name: `${label} ${goalRaceDate}`,
+            race_type: raceType,
+            race_date: goalRaceDate,
+            is_primary: true,
+          }),
+        }).catch(() => {
+          // Non-fatal — the athletes.goal_race_* columns still capture the
+          // intent, and the next migration replay (or manual /settings/races
+          // visit) can promote them. Don't block onboarding completion.
+        });
+      }
+
       toast.show("Saved — now connect Strava to start receiving reports.");
       router.replace("/settings");
       router.refresh();
