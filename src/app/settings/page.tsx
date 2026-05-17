@@ -156,6 +156,25 @@ export default async function SettingsPage({ searchParams }: Props) {
         </section>
       )}
 
+      <section className="mt-10" aria-labelledby="usage-heading">
+        <h2 id="usage-heading" className="font-sans text-[15px] font-semibold">
+          Usage
+        </h2>
+        <div className="mt-4 rounded border border-[var(--border)] bg-[var(--surface)] p-6">
+          <p className="text-[13px] leading-relaxed text-[var(--text-secondary)]">
+            Check your AI quota and reset date.
+          </p>
+          <p className="mt-3">
+            <Link
+              href="/settings/usage"
+              className="font-sans text-[13px] font-medium text-[var(--accent)] underline underline-offset-2"
+            >
+              View usage →
+            </Link>
+          </p>
+        </div>
+      </section>
+
       <section className="mt-10" aria-labelledby="integrations-heading">
         <h2 id="integrations-heading" className="font-sans text-[15px] font-semibold">
           Integrations
