@@ -11,6 +11,7 @@ import {
 } from "@/lib/strava/oauth";
 import { readToken, encryptToken } from "@/lib/oauth/tokens";
 import { withAthleteRefreshLock } from "@/lib/oauth/refreshLock";
+import { fetchAndPersistStreams } from "@/lib/strava/syncActivities";
 import type { StravaSummaryActivity } from "@/lib/strava/types";
 
 export const runtime = "nodejs";
@@ -40,7 +41,7 @@ function observedMaxFromActivity(
 async function upsertStravaWorkout(
   admin: ReturnType<typeof createAdminClient>,
   row: ReturnType<typeof mapStravaActivityToWorkout>,
-): Promise<void> {
+): Promise<{ workoutId: string; isNew: boolean }> {
   const { data: existing } = await admin
     .from("workouts")
     .select("id")
@@ -52,11 +53,16 @@ async function upsertStravaWorkout(
   if (existing?.id) {
     const { error } = await admin.from("workouts").update(row).eq("id", existing.id);
     if (error) throw new Error(error.message);
-    return;
+    return { workoutId: String(existing.id), isNew: false };
   }
 
-  const { error } = await admin.from("workouts").insert(row);
+  const { data: inserted, error } = await admin
+    .from("workouts")
+    .insert(row)
+    .select("id")
+    .single();
   if (error) throw new Error(error.message);
+  return { workoutId: String(inserted!.id), isNew: true };
 }
 
 async function processStravaWebhookEvent(event: StravaWebhookEvent): Promise<void> {
@@ -129,7 +135,17 @@ async function processStravaWebhookEvent(event: StravaWebhookEvent): Promise<voi
   );
 
   const row = mapStravaActivityToWorkout(conn.athlete_id, activity, observedMaxHr);
-  await upsertStravaWorkout(admin, row);
+  const { workoutId, isNew } = await upsertStravaWorkout(admin, row);
+
+  // T10: fetch HR streams for new run workouts. Inline (single activity)
+  // per the build doc; failures are recorded but don't abort the webhook.
+  if (isNew && row.sport_type === "run") {
+    try {
+      await fetchAndPersistStreams(workoutId, row.source_id, accessToken);
+    } catch (e) {
+      console.error("[webhook] streams fetch failed:", e);
+    }
+  }
 
   const weekStart = utcIsoMondayContainingTimestamp(row.started_at);
   await generateWeeklyAnalysis(conn.athlete_id, weekStart, admin);

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isoMondayLocal } from "@/lib/report/date";
@@ -6,12 +7,20 @@ import { citationToLink } from "@/lib/data/citations";
 import { ProfileCompletenessBanner } from "@/components/profile-completeness-banner";
 import { RaceCountdownCard } from "@/components/domain/race-countdown-card";
 import { PreSessionPreviewCard } from "@/components/domain/pre-session-preview-card";
+import { TodaysPlanTile } from "@/components/domain/todays-plan-tile";
+import { DailyJournalCard } from "@/components/domain/daily-journal-card";
+import { EveningGateInverse } from "@/components/domain/evening-gate-inverse";
 import { AdvisoryBlock } from "@/components/ui/advisory-block";
-import { getPlannedSession } from "@/lib/plan/getPlannedSession";
+import {
+  getPlannedSession,
+  getTypicalWeekPattern,
+} from "@/lib/plan/getPlannedSession";
 import {
   shouldRecommendRestDay,
   type Feeling,
 } from "@/lib/analytics/recoveryOverride";
+import { computeTodaysPlan } from "@/lib/analytics/todaysPlan";
+import { currentPhase } from "@/lib/analytics/periodization";
 
 export default async function DashboardPage() {
   const week = isoMondayLocal();
@@ -91,6 +100,80 @@ export default async function DashboardPage() {
     }
   }
 
+  // T02 — Today's Plan tile. Aggregates: latest recovery check-in (today,
+  // or fallback to most-recent), most-recent load_ratio from
+  // weekly_analyses, today's planned sessions, periodisation phase, and
+  // whether a typical-week pattern exists. Pure compute downstream.
+  let todaysPlan:
+    | ReturnType<typeof computeTodaysPlan>
+    | null = null;
+  if (user) {
+    const admin = createAdminClient();
+    const today = new Date();
+    const todayIso = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+    try {
+      const [
+        { data: recoveryRow },
+        { data: latestAnalysis },
+        plannedToday,
+        pattern,
+        { data: primaryRaceForPlan },
+      ] = await Promise.all([
+        admin
+          .from("recovery_check_in")
+          .select("feeling, check_in_date")
+          .eq("athlete_id", user.id)
+          .order("check_in_date", { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+        admin
+          .from("weekly_analyses")
+          .select("load_ratio")
+          .eq("athlete_id", user.id)
+          .order("week_start", { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+        getPlannedSession(user.id, todayIso, admin),
+        getTypicalWeekPattern(user.id, admin),
+        admin
+          .from("races")
+          .select("race_date, race_type")
+          .eq("athlete_id", user.id)
+          .eq("is_primary", true)
+          .maybeSingle(),
+      ]);
+      const phase = currentPhase(
+        primaryRaceForPlan
+          ? {
+              race_date: String(primaryRaceForPlan.race_date),
+              race_type:
+                typeof primaryRaceForPlan.race_type === "string"
+                  ? primaryRaceForPlan.race_type
+                  : null,
+            }
+          : null,
+        today,
+      );
+      todaysPlan = computeTodaysPlan({
+        latestRecoveryCheckIn:
+          recoveryRow?.feeling === "sharp" ||
+          recoveryRow?.feeling === "okay" ||
+          recoveryRow?.feeling === "tired"
+            ? (recoveryRow.feeling as Feeling)
+            : null,
+        loadRatio:
+          typeof latestAnalysis?.load_ratio === "number"
+            ? latestAnalysis.load_ratio
+            : null,
+        plannedSession: { sessions: plannedToday.sessions },
+        phase,
+        hasTypicalWeekPattern: Array.isArray(pattern) && pattern.length > 0,
+      });
+    } catch {
+      // Non-fatal — tile silently absent if any read fails.
+    }
+  }
+
   // Audit followup #5: surface a "consider a rest day" banner after 3
   // consecutive "tired" check-ins (per F12 recovery-override spec). Read
   // is bounded by the trailing window the function needs.
@@ -113,9 +196,12 @@ export default async function DashboardPage() {
     }
   }
 
-  // T12: F11 pre-session preview takes the dashboard top slot after 18:00
-  // local on a day where tomorrow has a planned session. Otherwise the
-  // F14 race countdown card keeps the slot.
+  // F11: pre-session preview takes the dashboard top slot when tomorrow
+  // has a planned session. Server fetches the data eagerly; the card
+  // gates its own rendering on the browser's local hour (≥ 18) via
+  // gateByClientHour. This fixes the post-2.0 audit followup #4 — the
+  // old server-side `getHours()` used UTC and surfaced the card at
+  // 01:00 local for GMT+7 athletes.
   let preSession:
     | {
         tomorrowDate: string;
@@ -125,31 +211,71 @@ export default async function DashboardPage() {
     | null = null;
   if (user) {
     const now = new Date();
-    const isEvening = now.getHours() >= 18;
-    if (isEvening) {
-      const tomorrow = new Date(now);
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      const tomorrowDate = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, "0")}-${String(tomorrow.getDate()).padStart(2, "0")}`;
+    const tomorrow = new Date(now);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowDate = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, "0")}-${String(tomorrow.getDate()).padStart(2, "0")}`;
+    const admin = createAdminClient();
+    const tomorrowPlanned = await getPlannedSession(user.id, tomorrowDate, admin);
+    const hasPlanned = tomorrowPlanned.sessions.some((s) => s.type !== "rest");
+    if (hasPlanned) {
+      const { data: existing } = await admin
+        .from("recovery_check_in")
+        .select("feeling")
+        .eq("athlete_id", user.id)
+        .eq("check_in_date", tomorrowDate)
+        .maybeSingle();
+      preSession = {
+        tomorrowDate,
+        tomorrowSessions: tomorrowPlanned.sessions,
+        initialFeeling:
+          existing?.feeling === "sharp" ||
+          existing?.feeling === "okay" ||
+          existing?.feeling === "tired"
+            ? (existing.feeling as Feeling)
+            : null,
+      };
+    }
+  }
+
+  // T07: daily journal — show once per day. Hide if the dismissal cookie is
+  // present OR if all three tags are already saved. Initial values seed the
+  // toggle state.
+  let journal:
+    | {
+        today: string;
+        initial: {
+          slept_well: boolean | null;
+          travelling: boolean | null;
+          stressed: boolean | null;
+        };
+      }
+    | null = null;
+  if (user) {
+    const now = new Date();
+    const isoDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+    const cookieStore = await cookies();
+    const dismissed = cookieStore.get(`eiq_journal_dismissed_${isoDate}`)?.value === "1";
+    if (!dismissed) {
       const admin = createAdminClient();
-      const tomorrowPlanned = await getPlannedSession(user.id, tomorrowDate, admin);
-      const hasPlanned = tomorrowPlanned.sessions.some((s) => s.type !== "rest");
-      if (hasPlanned) {
-        // Existing check-in row, if any (so the picker shows the prior choice).
-        const { data: existing } = await admin
-          .from("recovery_check_in")
-          .select("feeling")
-          .eq("athlete_id", user.id)
-          .eq("check_in_date", tomorrowDate)
-          .maybeSingle();
-        preSession = {
-          tomorrowDate,
-          tomorrowSessions: tomorrowPlanned.sessions,
-          initialFeeling:
-            existing?.feeling === "sharp" ||
-            existing?.feeling === "okay" ||
-            existing?.feeling === "tired"
-              ? (existing.feeling as Feeling)
-              : null,
+      const { data: row } = await admin
+        .from("daily_journal_tags")
+        .select("slept_well, travelling, stressed")
+        .eq("athlete_id", user.id)
+        .eq("check_in_date", isoDate)
+        .maybeSingle();
+      const allAnswered =
+        row != null &&
+        row.slept_well != null &&
+        row.travelling != null &&
+        row.stressed != null;
+      if (!allAnswered) {
+        journal = {
+          today: isoDate,
+          initial: {
+            slept_well: (row?.slept_well as boolean | null | undefined) ?? null,
+            travelling: (row?.travelling as boolean | null | undefined) ?? null,
+            stressed: (row?.stressed as boolean | null | undefined) ?? null,
+          },
         };
       }
     }
@@ -163,6 +289,12 @@ export default async function DashboardPage() {
         </div>
       )}
 
+      {journal && (
+        <div className="mb-6">
+          <DailyJournalCard today={journal.today} initial={journal.initial} />
+        </div>
+      )}
+
       {restDayHint && (
         <div className="mb-6">
           <AdvisoryBlock tone="warn">
@@ -171,6 +303,12 @@ export default async function DashboardPage() {
               taking a full rest day to recover before the next hard session.
             </p>
           </AdvisoryBlock>
+        </div>
+      )}
+
+      {todaysPlan && todaysPlan.recommendation !== "no_session" && (
+        <div className="mb-6">
+          <TodaysPlanTile plan={todaysPlan} />
         </div>
       )}
 
@@ -196,21 +334,26 @@ export default async function DashboardPage() {
         </div>
       )}
 
-      {/* T12 priority: F11 pre-session preview takes the top slot when
-          available; F14 countdown takes it otherwise. */}
-      {preSession ? (
+      {/* F11 fix (audit followup #4): server renders both. Client decides
+          on mount. PreSessionPreviewCard shows itself only when browser
+          local hour ≥ 18; until then RaceCountdownCard owns the slot. */}
+      {preSession && (
         <div className="mb-10">
           <PreSessionPreviewCard
             tomorrowDate={preSession.tomorrowDate}
             tomorrowSessions={preSession.tomorrowSessions}
             initialFeeling={preSession.initialFeeling}
+            gateByClientHour={18}
           />
         </div>
-      ) : primaryRace ? (
+      )}
+      {primaryRace && (
         <div className="mb-10">
-          <RaceCountdownCard race={primaryRace} />
+          <EveningGateInverse hour={preSession ? 18 : null}>
+            <RaceCountdownCard race={primaryRace} />
+          </EveningGateInverse>
         </div>
-      ) : null}
+      )}
 
       <p className="mb-2 font-sans text-[11px] font-medium tracking-[0.08em] text-[var(--text-muted)] [font-variant:small-caps]">
         This week&apos;s check · May 4–10, 2026
