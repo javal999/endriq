@@ -218,6 +218,93 @@ export const CITATIONS = {
     strength: "Moderate",
     note: "Intense training: the key to optimal performance — taper strategies.",
   },
+
+  // ── Phase 2.0 additions: taper / periodisation (F15) ─────────────────────
+  bosquet_2007: {
+    id: "bosquet_2007",
+    label: "Bosquet et al. (2007)",
+    doi: "10.1249/mss.0b013e3180383ed6",
+    pubmed_id: null,
+    url: "https://doi.org/10.1249/mss.0b013e3180383ed6",
+    strength: "Strong",
+    note: "Effects of tapering on performance: a meta-analysis. MSSE 39(8):1358–1365.",
+  },
+  mujika_padilla_2003: {
+    id: "mujika_padilla_2003",
+    label: "Mujika & Padilla (2003)",
+    doi: "10.1249/01.MSS.0000074448.73931.11",
+    pubmed_id: null,
+    url: "https://doi.org/10.1249/01.MSS.0000074448.73931.11",
+    strength: "Strong",
+    note: "Scientific bases for precompetition tapering strategies. MSSE 35(7):1182–1187.",
+  },
+  pyne_2009: {
+    id: "pyne_2009",
+    label: "Pyne, Mujika & Reilly (2009)",
+    doi: "10.1080/02640410902889834",
+    pubmed_id: null,
+    url: "https://doi.org/10.1080/02640410902889834",
+    strength: "Moderate",
+    note: "Peaking for optimal performance: research limitations and future directions. J Sports Sci 27(3):195–202.",
+  },
+  knechtle_nikolaidis_2018: {
+    id: "knechtle_nikolaidis_2018",
+    label: "Knechtle & Nikolaidis (2018)",
+    doi: "10.3389/fphys.2018.00634",
+    pubmed_id: null,
+    url: "https://doi.org/10.3389/fphys.2018.00634",
+    strength: "Moderate",
+    note: "Physiology and pathophysiology in ultra-marathon running. Front Physiol 9:634. Phase 2.0 uses for ultra taper window.",
+  },
+
+  // ── Phase 2.0 additions: race-time prediction (F14.B) ────────────────────
+  riegel_1981: {
+    id: "riegel_1981",
+    label: "Riegel (1981)",
+    doi: null,
+    pubmed_id: null,
+    url: "https://www.americanscientist.org/article/athletic-records-and-human-endurance",
+    strength: "Moderate",
+    note: "Athletic records and performance. American Scientist 69(3):285–290. Pre-DOI; source is the journal page. Origin of the Riegel pace-distance exponent (≈1.06) used for finish-time prediction.",
+  },
+  vickers_vertosick_2016: {
+    id: "vickers_vertosick_2016",
+    label: "Vickers & Vertosick (2016)",
+    doi: "10.1186/s13102-016-0052-y",
+    pubmed_id: null,
+    url: "https://doi.org/10.1186/s13102-016-0052-y",
+    strength: "Moderate",
+    note: "An empirical study of race times in recreational endurance runners. BMC Sports Sci Med Rehabil 8:26. Modernises Riegel's exponent for recreational runners.",
+  },
+  daniels_2014_vdot: {
+    id: "daniels_2014_vdot",
+    label: "Daniels (2014)",
+    doi: null,
+    pubmed_id: null,
+    url: "https://us.humankinetics.com/products/daniels-running-formula-3rd-edition",
+    strength: "Moderate",
+    note: "Daniels' Running Formula, 3rd ed. Human Kinetics. Book — no DOI. Source of the VDOT race-equivalency table used as the cross-check on Riegel predictions.",
+  },
+
+  // ── Phase 2.0 additions: training-stress monitoring (F1, F2) ─────────────
+  foster_2001: {
+    id: "foster_2001",
+    label: "Foster et al. (2001)",
+    doi: "10.1519/00124278-200102000-00019",
+    pubmed_id: null,
+    url: "https://doi.org/10.1519/00124278-200102000-00019",
+    strength: "Strong",
+    note: "A new approach to monitoring exercise training. JSCR 15(1):109–115. Session-RPE × duration training-load methodology.",
+  },
+  karvonen_1957: {
+    id: "karvonen_1957",
+    label: "Karvonen, Kentala & Mustala (1957)",
+    doi: null,
+    pubmed_id: "13470504",
+    url: "https://pubmed.ncbi.nlm.nih.gov/13470504/",
+    strength: "Strong",
+    note: "The effects of training on heart rate; a longitudinal study. Ann Med Exp Biol Fenn 35(3):307–315. Origin of the heart-rate reserve (HRR) method used in F8 RPE↔HR mapping.",
+  },
 } satisfies Record<string, Citation>;
 
 export type CitationId = keyof typeof CITATIONS;
