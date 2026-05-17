@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { CitationLink } from "@/components/citation-link";
+import { taperBoundaryRows } from "@/lib/data/taperBoundaries";
 
 export const metadata: Metadata = {
   title: "Learn — EnduranceIQ methodology",
@@ -17,6 +18,7 @@ const toc = [
   { href: "#concurrent-training", label: "Concurrent training" },
   { href: "#strength-for-runners", label: "Strength for runners" },
   { href: "#strength-methodology", label: "Strength: methodology + research" },
+  { href: "#periodization", label: "Periodisation & taper boundaries" },
   { href: "#session-classification", label: "Session classification" },
 ];
 
@@ -250,6 +252,65 @@ export default function LearnPage() {
             secondaryCitationId="blagrove_2018"
           />
         </div>
+      </section>
+
+      <section id="periodization" className="mt-14 scroll-mt-24 border-t border-[var(--border)] pt-12">
+        <h2 className="font-sans text-[17px] font-semibold">Periodisation & taper boundaries</h2>
+        <p className="mt-3 font-sans text-[15px] leading-relaxed text-[var(--text-secondary)]">
+          When you set a primary race, your weekly report and strength plan adapt to how close that race is.
+          The transition from general preparation to taper to race week is driven by event-specific evidence —
+          a 5K and an ultramarathon should not taper the same way.
+        </p>
+        <p className="mt-3 font-sans text-[15px] leading-relaxed text-[var(--text-secondary)]">
+          Bosquet et al. (2007) found optimal taper duration is 14–21 days for most endurance events. Mujika &
+          Padilla (2003) and Mujika (2010) refined this by event distance: shorter events benefit from shorter
+          tapers because chronic fatigue is smaller; ultras need longer windows because chronic load and
+          physiological recovery time scale up. Knechtle & Nikolaidis (2018) covers the recovery window for
+          ultra-distance events specifically.
+        </p>
+
+        <div className="mt-5 overflow-x-auto">
+          <table className="w-full border-collapse font-sans text-[14px]">
+            <thead>
+              <tr className="border-b border-[var(--border)] text-left text-[var(--text-secondary)]">
+                <th className="py-2 pr-4 font-medium">Race type</th>
+                <th className="py-2 pr-4 font-medium">Taper window</th>
+                <th className="py-2 pr-4 font-medium">Race week</th>
+                <th className="py-2 font-medium">Sources</th>
+              </tr>
+            </thead>
+            <tbody>
+              {taperBoundaryRows().map((row) => (
+                <tr
+                  key={row.raceType}
+                  className="border-b border-[var(--border-hairline)] align-top"
+                >
+                  <td className="py-2 pr-4 text-[var(--text-primary)]">{row.label}</td>
+                  <td className="py-2 pr-4 font-mono text-[var(--text-primary)]">
+                    {row.taperDays}d
+                  </td>
+                  <td className="py-2 pr-4 font-mono text-[var(--text-primary)]">
+                    {row.raceWeekDays}d
+                  </td>
+                  <td className="py-2 text-[var(--text-secondary)]">
+                    {row.citationIds.map((id, i) => (
+                      <span key={id}>
+                        {i > 0 && "; "}
+                        <CitationLink id={id} />
+                      </span>
+                    ))}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <p className="mt-5 font-sans text-[13px] italic text-[var(--text-muted)]">
+          Phases beyond taper (general preparation, specific preparation, pre-competition) are uniform across race
+          types: 22 weeks, 12 weeks, and 6 weeks before race day respectively. After the race, the first 14 days
+          are recovery; beyond that the athlete is back in transition until the next primary race is set.
+        </p>
       </section>
 
       <section id="session-classification" className="mt-14 scroll-mt-24 border-t border-[var(--border)] pt-12">
