@@ -36,6 +36,9 @@ export function ShareWeeklyButton({
   const dlg = useRef<HTMLDialogElement>(null);
   const [variant, setVariant] = useState<ShareVariant>("full");
   useEffect(() => {
+    // Cookie isn't available during SSR; seeding state on mount is the
+    // documented React 18/19 pattern for client-only persisted UI state.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setVariant(readVariantCookie());
   }, []);
   // T14 — append ?variant for non-default so OG previewers + the modal img
