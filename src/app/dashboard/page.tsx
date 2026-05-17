@@ -75,6 +75,22 @@ export default async function DashboardPage() {
     }
   }
 
+  // "Strength today" card — when the athlete's typical pattern OR today's
+  // override schedules a strength session, surface a direct link to
+  // /session/strength so they have a discoverable entry point.
+  let hasStrengthToday = false;
+  if (user) {
+    const admin = createAdminClient();
+    const today = new Date();
+    const isoDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+    try {
+      const planned = await getPlannedSession(user.id, isoDate, admin);
+      hasStrengthToday = planned.sessions.some((s) => s.type === "strength");
+    } catch {
+      // Non-fatal — fall back to not showing the card.
+    }
+  }
+
   // Audit followup #5: surface a "consider a rest day" banner after 3
   // consecutive "tired" check-ins (per F12 recovery-override spec). Read
   // is bounded by the trailing window the function needs.
@@ -155,6 +171,28 @@ export default async function DashboardPage() {
               taking a full rest day to recover before the next hard session.
             </p>
           </AdvisoryBlock>
+        </div>
+      )}
+
+      {hasStrengthToday && (
+        <div className="mb-6 rounded-md border border-[var(--accent)] bg-[var(--accent-soft)] p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="font-sans text-[11px] font-medium uppercase tracking-wider text-[var(--accent-dark)]">
+                Strength today
+              </p>
+              <p className="mt-1 font-sans text-[14px] text-[var(--text-primary)]">
+                Open today&apos;s session — warmup, main work, cooldown, with
+                tempo + cue for every exercise.
+              </p>
+            </div>
+            <Link
+              href="/session/strength"
+              className="inline-flex min-h-10 items-center rounded-md bg-[var(--accent)] px-4 font-sans text-[13px] font-medium text-[var(--text-on-accent)] hover:opacity-90"
+            >
+              Open session →
+            </Link>
+          </div>
         </div>
       )}
 

@@ -72,7 +72,11 @@ export async function PlannedWeekStrip({
             <div className="flex flex-wrap gap-1">
               {hasSessions ? (
                 day.sessions.map((s: PlannedSessionEntry, j: number) => (
-                  <SessionTypeChip key={`${s.type}-${j}`} type={s.type} />
+                  <SessionTypeChip
+                    key={`${s.type}-${j}`}
+                    type={s.type}
+                    href={s.type === "strength" ? "/session/strength" : undefined}
+                  />
                 ))
               ) : (
                 <span className="font-sans text-[12px] italic text-[var(--text-muted)]">

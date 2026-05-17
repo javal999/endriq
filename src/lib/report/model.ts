@@ -42,6 +42,9 @@ export interface WeeklyReportModel {
   sessions: Array<{
     workoutId: string;
     dateShort: string;
+    /** ISO timestamp of the workout start. Clients should format this in the
+     *  browser's local timezone; `dateShort` is the SSR fallback. */
+    startedAtIso?: string;
     typeLabel: string;
     distanceLabel: string;
     hrLabel: string;

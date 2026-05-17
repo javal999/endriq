@@ -20,9 +20,28 @@ export async function Nav() {
       <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-5 md:px-12">
         <Link
           href={user ? "/dashboard" : "/"}
-          className="font-sans text-[15px] font-semibold tracking-tight text-[var(--text-primary)]"
+          className="inline-flex items-center gap-2 font-sans text-[15px] font-semibold tracking-tight text-[var(--text-primary)]"
         >
-          Endurance<span className="text-[var(--accent)]">IQ</span>
+          {/* Brand mark — inline SVG so it scales sharply at any density and
+              doesn't add a network round-trip. Mirrors public/logo-mark.svg
+              and src/app/icon.svg. */}
+          <svg
+            viewBox="0 0 256 256"
+            width="22"
+            height="22"
+            aria-hidden
+            className="shrink-0 rounded-sm"
+          >
+            <rect width="256" height="256" fill="#0B1426" />
+            <path d="M 92,72 L 208,72 L 192,98 L 92,98 Z" fill="#FFFFFF" />
+            <path d="M 92,116 L 196,116 L 180,142 L 92,142 Z" fill="#FFFFFF" />
+            <path d="M 92,160 L 208,160 L 192,186 L 92,186 Z" fill="#FFFFFF" />
+            <path d="M 72,90 C 84,70 116,70 124,98 C 116,118 84,118 72,98 Z" fill="#3FCE3F" />
+            <path d="M 72,134 C 84,114 116,114 124,142 C 116,162 84,162 72,142 Z" fill="#22B81E" />
+          </svg>
+          <span>
+            Endurance<span className="text-[var(--accent)]">IQ</span>
+          </span>
         </Link>
 
         {user ? (

@@ -1,7 +1,34 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { BadgeTone } from "@/lib/report/model";
+
+/**
+ * Renders an ISO timestamp in the browser's local timezone. SSR shows the
+ * server-formatted fallback briefly; on hydration we replace it with the
+ * locally-formatted date, which produces the right weekday for athletes
+ * outside UTC. Fixes the bug where a Sunday-AM run in Jakarta showed up
+ * as "Saturday" because the server was UTC.
+ */
+function ClientLocalDate({
+  iso,
+  fallback,
+}: {
+  iso: string | undefined;
+  fallback: string;
+}) {
+  const [label, setLabel] = useState<string | null>(null);
+  useEffect(() => {
+    if (!iso) return;
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setLabel(
+      d.toLocaleDateString(undefined, { weekday: "short", day: "numeric" }),
+    );
+  }, [iso]);
+  return <>{label ?? fallback}</>;
+}
 
 // All possible type labels from sessionTypeLabel()
 const TYPE_CLASSIFICATION = [
@@ -30,6 +57,7 @@ export function SessionsTableWithHints({
   sessions: Array<{
     workoutId: string;
     dateShort: string;
+    startedAtIso?: string;
     typeLabel: string;
     distanceLabel: string;
     hrLabel: string;
@@ -121,6 +149,7 @@ function SessionRow({
   row: {
     workoutId: string;
     dateShort: string;
+    startedAtIso?: string;
     typeLabel: string;
     distanceLabel: string;
     hrLabel: string;
@@ -137,7 +166,9 @@ function SessionRow({
 
   return (
     <tr className="border-b border-[var(--surface-raised)] last:border-0">
-      <td className="px-4 py-3 font-mono text-[13px]">{row.dateShort}</td>
+      <td className="px-4 py-3 font-mono text-[13px]">
+        <ClientLocalDate iso={row.startedAtIso} fallback={row.dateShort} />
+      </td>
       <td className="px-4 py-3 font-sans text-[13px] font-medium text-[var(--text-primary)]">{row.typeLabel}</td>
       <td className="px-4 py-3 font-mono text-[13px]">{row.distanceLabel}</td>
       <td className="px-4 py-3 font-mono text-[13px]">{row.hrLabel}</td>

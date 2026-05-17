@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="EnduranceIQ">
+  <!-- Dark navy background. Square corners; the host can clip to rounded as needed. -->
+  <rect width="256" height="256" fill="#0B1426" />
+
+  <!-- Stylised "E": three white bars stacked, each with a slanted right edge.
+       Two green leaf shapes overlay between bars, forming the negative-space
+       middle of the letter. Matches the brand sketch from the team. -->
+
+  <!-- Top bar -->
+  <path d="M 92,72 L 208,72 L 192,98 L 92,98 Z" fill="#FFFFFF" />
+
+  <!-- Middle bar (slightly shorter for letterform balance) -->
+  <path d="M 92,116 L 196,116 L 180,142 L 92,142 Z" fill="#FFFFFF" />
+
+  <!-- Bottom bar -->
+  <path d="M 92,160 L 208,160 L 192,186 L 92,186 Z" fill="#FFFFFF" />
+
+  <!-- Upper leaf — light green. Cubic curve creates the seed/leaf shape. -->
+  <path
+    d="M 72,90 C 84,70 116,70 124,98 C 116,118 84,118 72,98 Z"
+    fill="#3FCE3F"
+  />
+
+  <!-- Lower leaf — slightly darker green. -->
+  <path
+    d="M 72,134 C 84,114 116,114 124,142 C 116,162 84,162 72,142 Z"
+    fill="#22B81E"
+  />
+</svg>

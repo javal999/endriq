@@ -132,9 +132,14 @@ export function WeeklyAnalysisCard({
       </div>
       <div className="rounded-[20px] border border-[rgba(213,216,224,0.45)] bg-[rgba(250,251,253,0.68)] p-6 shadow-[0_20px_40px_-16px_rgba(16,19,26,0.12)] backdrop-blur-xl md:p-8">
         {tone === "roast" && !roastSections ? (
-          <p className="font-sans text-[14px] italic text-[var(--text-muted)]">
-            Roast is generating — reload this page in a few seconds to see your sarcastic summary.
-          </p>
+          <>
+            <p className="mb-4 font-sans text-[12px] italic text-[var(--text-muted)]">
+              Roast isn&apos;t available for this week (may need a regen, or
+              the AI quota was reached this month). Showing the coach narrative
+              instead.
+            </p>
+            <Sections sections={coachSections} />
+          </>
         ) : (
           <Sections sections={activeSections} />
         )}
