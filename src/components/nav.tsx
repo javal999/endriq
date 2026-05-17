@@ -8,9 +8,9 @@ export async function Nav() {
   const week = isoMondayLocal();
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  const reportHref = user
-    ? `/report/${user.id}/${week}`
-    : `/report/demo/${week}`;
+  // T08: signed-in users go to the consolidated /week view; signed-out
+  // visitors keep landing on the demo report for the marketing flow.
+  const weekHref = user ? "/week" : `/report/demo/${week}`;
 
   const locale = await getLocale();
   const t = await getTranslations("common");
@@ -30,7 +30,7 @@ export async function Nav() {
             <ul className="flex gap-8">
               {[
                 { href: "/dashboard", label: t("nav.home") },
-                { href: reportHref, label: t("nav.weeklyReport") },
+                { href: weekHref, label: t("nav.week") },
                 { href: "/learn", label: t("nav.learn") },
                 { href: "/settings", label: t("nav.settings") },
                 { href: "/support", label: t("nav.support") },

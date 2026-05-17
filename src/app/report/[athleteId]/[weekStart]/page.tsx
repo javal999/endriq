@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
+import { permanentRedirect, redirect } from "next/navigation";
 import { isAthleteUuid } from "@/lib/enduranceiq/isAthleteUuid";
 import { buildWeeklyReport } from "@/lib/report/buildWeeklyReport";
 import { buildDemoWeeklyReport } from "@/lib/report/demoModel";
@@ -17,6 +17,13 @@ export default async function WeeklyReportPage({ params }: Props) {
     return (
       <WeeklyReportView model={model} athleteId="demo" weekStart={weekStart} />
     );
+  }
+
+  // T08: real-user paths permanently redirect to the consolidated /week
+  // view. Demo paths stay on /report/demo/<weekStart> for the share-card
+  // generator and the unauthenticated demo deep-link.
+  if (isAthleteUuid(athleteId)) {
+    permanentRedirect(`/week?w=${weekStart}`);
   }
 
   const supabase = await createClient();
