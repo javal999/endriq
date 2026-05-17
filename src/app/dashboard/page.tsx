@@ -16,7 +16,7 @@ export default async function DashboardPage() {
     : `/report/demo/${week}`;
 
   // Compute missing profile fields for the completeness banner
-  let missingProfileFields: string[] = [];
+  const missingProfileFields: string[] = [];
   if (user) {
     const { data: athlete } = await supabase
       .from("athletes")

@@ -37,7 +37,11 @@ export function ProfileCompletenessBanner({
         saved.add(field);
       }
     }
+    // localStorage is unavailable during SSR; reading on mount and seeding state is
+    // the documented React 18/19 pattern for client-only persisted UI state.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setDismissed(saved);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setReady(true);
   }, [missingFields]);
 

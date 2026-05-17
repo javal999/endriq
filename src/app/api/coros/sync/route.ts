@@ -26,7 +26,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
     }
 
-    let athleteId = user.id;
+    const athleteId = user.id;
     try {
       const body = (await request.json()) as { athlete_id?: string };
       if (body?.athlete_id != null && body.athlete_id !== athleteId) {

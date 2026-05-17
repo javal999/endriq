@@ -75,6 +75,9 @@ export function WeeklyAnalysisCard({
   const [tone, setTone] = useState<"coach" | "roast">("coach");
 
   useEffect(() => {
+    // getStoredTone reads cookies; not available during SSR. Seeding state on mount
+    // is the documented React 18/19 pattern for client-only persisted UI state.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (showRoastTab) setTone(getStoredTone());
   }, [showRoastTab]);
 
