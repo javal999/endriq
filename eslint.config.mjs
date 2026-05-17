@@ -12,6 +12,21 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Non-source paths that live in this repo root but are not the app:
+    ".stryker-tmp/**",
+    ".cursor/**",
+    "Prototypes/**",
+    "Tools/**",
+    "Assets/**",
+    "Deliverables/**",
+    "Knowledge/**",
+    "Tasks/**",
+    "projects/**",
+    "skills/**",
+    "scripts/**",
+    "e2e/**",
+    "test-results/**",
+    "supabase/migrations/**",
   ]),
 ]);
 
