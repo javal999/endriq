@@ -22,22 +22,39 @@ export async function Nav() {
           href={user ? "/dashboard" : "/"}
           className="inline-flex items-center gap-2 font-sans text-[15px] font-semibold tracking-tight text-[var(--text-primary)]"
         >
-          {/* Brand mark — inline SVG so it scales sharply at any density and
-              doesn't add a network round-trip. Mirrors public/logo-mark.svg
-              and src/app/icon.svg. */}
+          {/* Brand mark — inline SVG mirrors src/app/icon.svg (favicon)
+              and projects/endurance_training/EnduranceIQ/endriq.svg
+              (asset source). Inline so it scales sharply and adds no
+              network round-trip. */}
           <svg
-            viewBox="0 0 256 256"
+            viewBox="0 0 1024 1024"
             width="22"
             height="22"
             aria-hidden
+            fill="none"
             className="shrink-0 rounded-sm"
           >
-            <rect width="256" height="256" fill="#0B1426" />
-            <path d="M 92,72 L 208,72 L 192,98 L 92,98 Z" fill="#FFFFFF" />
-            <path d="M 92,116 L 196,116 L 180,142 L 92,142 Z" fill="#FFFFFF" />
-            <path d="M 92,160 L 208,160 L 192,186 L 92,186 Z" fill="#FFFFFF" />
-            <path d="M 72,90 C 84,70 116,70 124,98 C 116,118 84,118 72,98 Z" fill="#3FCE3F" />
-            <path d="M 72,134 C 84,114 116,114 124,142 C 116,162 84,162 72,142 Z" fill="#22B81E" />
+            <rect width="1024" height="1024" fill="#050505" />
+            <path
+              d="M 560,260 H 820 C 835,260 846,273 842,287 L 820,370 C 816,384 803,394 788,394 H 528 C 513,394 502,381 506,367 L 528,284 C 532,270 545,260 560,260 Z"
+              fill="#F5F5F5"
+            />
+            <path
+              d="M 470,468 H 680 C 695,468 706,481 702,495 L 686,554 C 682,568 669,578 654,578 H 444 C 429,578 418,565 422,551 L 438,492 C 442,478 455,468 470,468 Z"
+              fill="#F5F5F5"
+            />
+            <path
+              d="M 430,664 H 720 C 735,664 746,677 742,691 L 720,774 C 716,788 703,798 688,798 H 398 C 383,798 372,785 376,771 L 398,688 C 402,674 415,664 430,664 Z"
+              fill="#F5F5F5"
+            />
+            <path
+              d="M 290,500 C 360,390 470,390 560,394 C 545,470 490,520 390,520 H 240 C 250,510 270,500 290,500 Z"
+              fill="#7CFF00"
+            />
+            <path
+              d="M 250,700 C 320,590 430,590 520,594 C 505,670 450,720 350,720 H 200 C 210,710 230,700 250,700 Z"
+              fill="#00E04F"
+            />
           </svg>
           <span>
             Endurance<span className="text-[var(--accent)]">IQ</span>

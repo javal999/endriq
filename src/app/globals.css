@@ -46,6 +46,19 @@
 
   /* T01 — typography shortcut for the metric value pattern */
   --font-mono-lg: 20px;
+
+  /* F14.A — Periodisation phase fill colors for <RaceArc>.
+     Mid-saturation tones that gradient from cool (transition / general prep)
+     to warm (race week) — match the periodisation arc described in
+     PHASE-2.0-UI-DESIGN.md §4.3. Without these, the SVG fill="var(--phase-X)"
+     references in race-arc.tsx fall back to currentColor (black). */
+  --phase-transition:      #8a93a2; /* slate — off-season */
+  --phase-general-prep:    #5a90c0; /* blue — foundation */
+  --phase-specific-prep:   #2e7d5b; /* green — accumulation */
+  --phase-pre-competition: #e09c2c; /* amber — sharpening */
+  --phase-taper:           #c44b3f; /* red — peaking */
+  --phase-race-week:       #10131a; /* near-black — the goal */
+  --phase-recovery:        #8a93a2; /* slate — post-race */
 }
 
 @theme inline {
