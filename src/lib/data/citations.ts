@@ -305,6 +305,17 @@ export const CITATIONS = {
     strength: "Strong",
     note: "The effects of training on heart rate; a longitudinal study. Ann Med Exp Biol Fenn 35(3):307–315. Origin of the heart-rate reserve (HRR) method used in F8 RPE↔HR mapping.",
   },
+
+  // Phase 2.1 T05 — cardiac decoupling / HR drift threshold for long-run rule.
+  lambert_2002: {
+    id: "lambert_2002",
+    label: "Lambert et al. (2002)",
+    doi: "10.1136/bjsm.36.4.279",
+    pubmed_id: null,
+    url: "https://doi.org/10.1136/bjsm.36.4.279",
+    strength: "Moderate",
+    note: "Heart rate during training and competition for long-distance running. Br J Sports Med 36(4):279–283. Source for the 6% HR drift threshold in the long-run-too-fast rule.",
+  },
 } satisfies Record<string, Citation>;
 
 export type CitationId = keyof typeof CITATIONS;

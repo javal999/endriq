@@ -168,6 +168,10 @@ export function computeRuleFindings(options: {
           "Average HR on the long run sits close to general aerobic efforts. Consider slowing early miles so the last third stays controlled.",
         citations: [
           citationToLink("laursen_2010"),
+          // T05-2.1: Lambert (2002) 6% drift threshold. T10 will replace
+          // the session-average heuristic above with true per-km drift from
+          // Strava streams; until then both sources are cited.
+          citationToLink("lambert_2002"),
         ],
         confidence: "Confidence: Moderate — single-session avg HR",
         evidenceStrength: "Moderate",

@@ -58,18 +58,30 @@ export function PredictedFinishCard({ prediction, locale = "en" }: PredictedFini
         )}
       </div>
 
-      <p className="font-mono text-[28px] leading-[32px] font-medium text-[var(--text-primary)]">
+      {/* T05-2.1 lower-confidence treatment per council fix:
+          muted range text (not primary), neutral "Model estimate" pill
+          replacing "High confidence", and a caveat sentence so athletes
+          read this as a statistical projection rather than a target. */}
+      <p className="font-mono text-[28px] leading-[32px] font-medium text-[var(--text-secondary)]">
         {formatFinishTime(prediction.lowSec)} – {formatFinishTime(prediction.highSec)}
       </p>
 
       <div className="flex flex-wrap items-center gap-2 font-sans text-[12px] text-[var(--text-secondary)]">
-        <span className="rounded-sm bg-[var(--accent-soft)] px-2 py-0.5 font-medium uppercase tracking-wider text-[var(--accent-dark)]">
-          {labels[prediction.confidence]}
+        <span
+          style={{ background: "rgba(136, 135, 128, 0.12)", color: "#444441" }}
+          className="rounded-sm px-2 py-0.5 font-medium uppercase tracking-wider"
+        >
+          Model estimate · {labels[prediction.confidence].split(" ")[0].toLowerCase()}
         </span>
         <span>
           For your {RACE_TYPE_LABELS[prediction.inputs.targetDistance] ?? "race"}
         </span>
       </div>
+
+      <p className="font-sans text-[12px] italic text-[var(--text-muted)]">
+        Statistical projection from your recent PR. Updates weekly. Not a
+        target your coach set.
+      </p>
 
       {/* Input chips per UI design §1: PR + history confidence inputs */}
       <ul className="flex flex-wrap gap-2 pt-1">
