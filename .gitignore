@@ -68,3 +68,10 @@ projects/
 .stryker-tmp/
 test-results/
 playwright-report/
+
+# iCloud Drive sync conflict copies — created when iCloud syncs an open file
+# while we're writing it. Always identical to the canonical name; ignore so
+# they don't pollute `git status` or accidentally get committed.
+* 2.*
+* 3.*
+* 4.*
