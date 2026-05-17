@@ -5,6 +5,9 @@ import { isoMondayLocal } from "@/lib/report/date";
 import { citationToLink } from "@/lib/data/citations";
 import { ProfileCompletenessBanner } from "@/components/profile-completeness-banner";
 import { RaceCountdownCard } from "@/components/domain/race-countdown-card";
+import { PreSessionPreviewCard } from "@/components/domain/pre-session-preview-card";
+import { getPlannedSession } from "@/lib/plan/getPlannedSession";
+import type { Feeling } from "@/lib/analytics/recoveryOverride";
 
 export default async function DashboardPage() {
   const week = isoMondayLocal();
@@ -68,6 +71,48 @@ export default async function DashboardPage() {
     }
   }
 
+  // T12: F11 pre-session preview takes the dashboard top slot after 18:00
+  // local on a day where tomorrow has a planned session. Otherwise the
+  // F14 race countdown card keeps the slot.
+  let preSession:
+    | {
+        tomorrowDate: string;
+        tomorrowSessions: import("@/lib/plan/types").PlannedSessionEntry[];
+        initialFeeling: Feeling | null;
+      }
+    | null = null;
+  if (user) {
+    const now = new Date();
+    const isEvening = now.getHours() >= 18;
+    if (isEvening) {
+      const tomorrow = new Date(now);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const tomorrowDate = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, "0")}-${String(tomorrow.getDate()).padStart(2, "0")}`;
+      const admin = createAdminClient();
+      const tomorrowPlanned = await getPlannedSession(user.id, tomorrowDate, admin);
+      const hasPlanned = tomorrowPlanned.sessions.some((s) => s.type !== "rest");
+      if (hasPlanned) {
+        // Existing check-in row, if any (so the picker shows the prior choice).
+        const { data: existing } = await admin
+          .from("recovery_check_in")
+          .select("feeling")
+          .eq("athlete_id", user.id)
+          .eq("check_in_date", tomorrowDate)
+          .maybeSingle();
+        preSession = {
+          tomorrowDate,
+          tomorrowSessions: tomorrowPlanned.sessions,
+          initialFeeling:
+            existing?.feeling === "sharp" ||
+            existing?.feeling === "okay" ||
+            existing?.feeling === "tired"
+              ? (existing.feeling as Feeling)
+              : null,
+        };
+      }
+    }
+  }
+
   return (
     <div className="mx-auto max-w-5xl px-5 py-12 md:px-12 md:py-16">
       {missingProfileFields.length > 0 && (
@@ -76,11 +121,21 @@ export default async function DashboardPage() {
         </div>
       )}
 
-      {primaryRace && (
+      {/* T12 priority: F11 pre-session preview takes the top slot when
+          available; F14 countdown takes it otherwise. */}
+      {preSession ? (
+        <div className="mb-10">
+          <PreSessionPreviewCard
+            tomorrowDate={preSession.tomorrowDate}
+            tomorrowSessions={preSession.tomorrowSessions}
+            initialFeeling={preSession.initialFeeling}
+          />
+        </div>
+      ) : primaryRace ? (
         <div className="mb-10">
           <RaceCountdownCard race={primaryRace} />
         </div>
-      )}
+      ) : null}
 
       <p className="mb-2 font-sans text-[11px] font-medium tracking-[0.08em] text-[var(--text-muted)] [font-variant:small-caps]">
         This week&apos;s check · May 4–10, 2026
