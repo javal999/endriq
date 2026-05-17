@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { SessionInterpretView } from "./session-interpret-view";
+import { HrPerKmChart } from "@/components/data/hr-per-km-chart";
 import type { AthleteHistorySlice } from "@/lib/analytics/types";
 
 /**
@@ -71,6 +72,27 @@ export default async function SessionPage({ params, searchParams }: Props) {
   const locale: "en" | "id" =
     athlete?.preferred_locale === "id" ? "id" : "en";
 
+  // T10: if `id` is a UUID and the workout has per-km HR streams, surface them.
+  let perKmChart: {
+    buckets: import("@/components/data/hr-per-km-chart").HrPerKmBucket[];
+    maxHr: number;
+  } | null = null;
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+    const { data: workout } = await supabase
+      .from("workouts")
+      .select("hr_per_km, sport_type")
+      .eq("id", id)
+      .eq("athlete_id", user.id)
+      .maybeSingle();
+    const km = (workout?.hr_per_km as { km?: unknown } | null)?.km;
+    if (workout?.sport_type === "run" && Array.isArray(km) && km.length > 0) {
+      perKmChart = {
+        buckets: km as import("@/components/data/hr-per-km-chart").HrPerKmBucket[],
+        maxHr: slice.observedMaxHr ?? 200,
+      };
+    }
+  }
+
   return (
     <div className="mx-auto max-w-3xl px-5 py-10 md:px-8">
       <p className="font-sans text-[12px] font-medium uppercase tracking-wider text-[var(--text-muted)]">
@@ -84,6 +106,15 @@ export default async function SessionPage({ params, searchParams }: Props) {
       </p>
 
       <SessionInterpretView slice={slice} locale={locale} initialInput={initialInput} />
+
+      {perKmChart && (
+        <div className="mt-8">
+          <HrPerKmChart
+            buckets={perKmChart.buckets}
+            observedMaxHr={perKmChart.maxHr}
+          />
+        </div>
+      )}
 
       <p className="mt-8 font-sans text-[12px] italic text-[var(--text-muted)]">
         Saved sessions land in your weekly plan when planned-session storage ships next.
