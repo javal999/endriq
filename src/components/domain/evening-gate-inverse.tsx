@@ -9,28 +9,33 @@
  * race-countdown card and the pre-session preview without a server-side
  * timezone read.
  *
- * SSR renders the children (so RaceCountdownCard is visible on first
- * paint). After mount we check the local hour; if it's ≥ the threshold
- * we hide the children, letting the PreSessionPreviewCard take over.
+ * Uses useSyncExternalStore so SSR renders the children (visible=true)
+ * and the post-mount client snapshot decides whether to hide them. This
+ * is the React-recommended pattern for reading non-React-managed state
+ * (here: the browser's `Date`) without tripping
+ * react-hooks/set-state-in-effect.
  *
  * Refs: post-2.0 audit followup #4; PHASE-2.1-BUILD.md §6 T11.
  */
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useSyncExternalStore, type ReactNode } from "react";
 
 export interface EveningGateInverseProps {
   hour: number | null;
   children: ReactNode;
 }
 
-export function EveningGateInverse({ hour, children }: EveningGateInverseProps) {
-  // Initial state: visible. After mount we may hide ourselves.
-  const [visible, setVisible] = useState(true);
+/** No-op subscription — snapshot is only read on first client render. */
+function subscribe() {
+  return () => {};
+}
 
-  useEffect(() => {
-    if (hour == null) return;
-    if (new Date().getHours() >= hour) setVisible(false);
-  }, [hour]);
+export function EveningGateInverse({ hour, children }: EveningGateInverseProps) {
+  const visible = useSyncExternalStore(
+    subscribe,
+    () => (hour == null ? true : new Date().getHours() < hour),
+    () => true,
+  );
 
   if (!visible) return null;
   return <>{children}</>;

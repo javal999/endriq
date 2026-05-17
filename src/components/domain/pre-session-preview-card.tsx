@@ -15,7 +15,7 @@
  *       PHASE-2.0-BUILD.md T12 steps 3-4 + 7.
  */
 
-import { useEffect, useState, useTransition } from "react";
+import { useState, useSyncExternalStore, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { GlassCard } from "@/components/ui/glass-card";
 import { FeelingButtonRow } from "@/components/inputs/feeling-button-row";
@@ -55,6 +55,11 @@ const HEADING_EN: Record<Feeling | "default", string> = {
   tired: "Tired — review tomorrow?",
 };
 
+/** No-op subscription — snapshot is only read on first client render. */
+function subscribeNoop() {
+  return () => {};
+}
+
 export function PreSessionPreviewCard({
   tomorrowDate,
   tomorrowSessions,
@@ -68,13 +73,16 @@ export function PreSessionPreviewCard({
   const [modalOpen, setModalOpen] = useState(false);
   // F11 TZ fix: when the parent passes `gateByClientHour`, the card only
   // mounts after the client confirms the local hour clears the threshold.
-  const [clientPassesGate, setClientPassesGate] = useState(
-    gateByClientHour == null,
+  // useSyncExternalStore is the React-recommended pattern for reading
+  // browser-managed state (here: `Date`) without setState-in-effect.
+  const clientPassesGate = useSyncExternalStore(
+    subscribeNoop,
+    () =>
+      gateByClientHour == null
+        ? true
+        : new Date().getHours() >= gateByClientHour,
+    () => gateByClientHour == null,
   );
-  useEffect(() => {
-    if (gateByClientHour == null) return;
-    setClientPassesGate(new Date().getHours() >= gateByClientHour);
-  }, [gateByClientHour]);
 
   const swap = feeling ? planSwap(feeling, tomorrowSessions) : null;
 

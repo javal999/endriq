@@ -14,7 +14,13 @@ import { useEffect, useRef, useState } from "react";
 export interface RestTimerProps {
   /** Initial countdown in seconds. */
   seconds: number;
-  /** Resets the countdown when this value changes. Useful when a new set starts. */
+  /**
+   * When this value changes, the parent should remount the component
+   * (use it as a React `key` on the parent JSX). We do not run a
+   * setState reset effect here — React's strict-lint forbids
+   * setState-in-effect, and the remount achieves the same behaviour
+   * more cleanly.
+   */
   resetKey?: string | number;
   onComplete?: () => void;
 }
@@ -26,14 +32,9 @@ function format(s: number): string {
   return `${m}:${String(r).padStart(2, "0")}`;
 }
 
-export function RestTimer({ seconds, resetKey, onComplete }: RestTimerProps) {
+export function RestTimer({ seconds, onComplete }: RestTimerProps) {
   const [remaining, setRemaining] = useState(seconds);
   const completed = useRef(false);
-
-  useEffect(() => {
-    setRemaining(seconds);
-    completed.current = false;
-  }, [seconds, resetKey]);
 
   useEffect(() => {
     if (remaining <= 0) {
