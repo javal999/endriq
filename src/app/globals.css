@@ -52,8 +52,31 @@ body {
   outline-offset: 2px;
 }
 
+/* F8 calibration pulse — applied to the ConfidencePill when level=calibrating. */
+@keyframes eiq-calibrating-pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(46, 94, 78, 0.35); }
+  70%  { box-shadow: 0 0 0 6px rgba(46, 94, 78, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(46, 94, 78, 0); }
+}
+.eiq-calibrating-pulse {
+  animation: eiq-calibrating-pulse 1s ease-in-out infinite;
+}
+
+/* F8 panel — 180ms ease-out cross-fade when the interpretation re-renders. */
+@keyframes eiq-interpretation-fade {
+  from { opacity: 0.55; }
+  to   { opacity: 1; }
+}
+.eiq-interpretation-fade {
+  animation: eiq-interpretation-fade 180ms ease-out;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .skip-link {
     transition: none;
+  }
+  .eiq-calibrating-pulse,
+  .eiq-interpretation-fade {
+    animation: none;
   }
 }
