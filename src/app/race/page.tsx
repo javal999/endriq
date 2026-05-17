@@ -6,10 +6,18 @@ import { addDaysIsoMonday, isoMondayLocal } from "@/lib/report/date";
 import { currentPhase } from "@/lib/analytics/periodization";
 import { RaceCountdownCard } from "@/components/domain/race-countdown-card";
 import { RaceArc, type RaceArcWeek } from "@/components/domain/race-arc";
+import { PredictedFinishCard } from "@/components/domain/predicted-finish-card";
 import { AdvisoryBlock } from "@/components/ui/advisory-block";
 import { HairlineCard } from "@/components/ui/hairline-card";
 import { getPlannedSession } from "@/lib/plan/getPlannedSession";
 import type { PlannedSessionEntry } from "@/lib/plan/types";
+import type {
+  AthleteHistorySlice,
+  WorkoutForAnalysis,
+} from "@/lib/analytics/types";
+import { predictedFinish } from "@/lib/analytics/predictedFinish";
+import { inferRecentRacePr } from "@/lib/analytics/inferRecentRacePr";
+import { flags } from "@/lib/featureFlags";
 
 /**
  * /race — F14.A 22-week race arc + countdown.
@@ -48,6 +56,99 @@ function estimateWeekKm(sessions: PlannedSessionEntry[]): number {
   let total = 0;
   for (const s of sessions) total += SESSION_KM_ESTIMATE[s.type] ?? 0;
   return total;
+}
+
+/**
+ * Compute and render the predicted-finish card. Returns null when the
+ * prediction is ineligible — PRD §5.7 F14.B mandates silence.
+ */
+async function renderPredictedFinish(
+  athleteId: string,
+  race: { race_date: string; race_type: string | null },
+  admin: ReturnType<typeof createAdminClient>,
+  today: Date,
+) {
+  // Trailing 84-day workout window — enough to count 12 consistent weeks.
+  const since = new Date(today.getTime() - 84 * 24 * 60 * 60 * 1000).toISOString();
+  const { data: workoutsRaw } = await admin
+    .from("workouts")
+    .select(
+      "id, source, sport_type, session_label, started_at, duration_seconds, distance_meters, avg_hr, max_hr, avg_cadence, training_stress",
+    )
+    .eq("athlete_id", athleteId)
+    .gte("started_at", since)
+    .order("started_at", { ascending: true });
+
+  const recentWorkouts: WorkoutForAnalysis[] = ((workoutsRaw ?? []) as Array<
+    Record<string, unknown>
+  >).map((w) => ({
+    id: String(w.id ?? ""),
+    source: String(w.source ?? "strava"),
+    sport_type: (w.sport_type as WorkoutForAnalysis["sport_type"]) ?? "other",
+    session_label: typeof w.session_label === "string" ? w.session_label : null,
+    started_at: String(w.started_at ?? ""),
+    duration_seconds: Number(w.duration_seconds ?? 0),
+    distance_meters: typeof w.distance_meters === "number" ? w.distance_meters : null,
+    avg_hr: typeof w.avg_hr === "number" ? w.avg_hr : null,
+    max_hr: typeof w.max_hr === "number" ? w.max_hr : null,
+    avg_cadence: typeof w.avg_cadence === "number" ? w.avg_cadence : null,
+    training_stress: typeof w.training_stress === "number" ? w.training_stress : null,
+  }));
+
+  // Pull a 365-day window for PR inference (separate from the 84-day
+  // training-consistency window).
+  const sinceYear = new Date(today.getTime() - 365 * 24 * 60 * 60 * 1000).toISOString();
+  const { data: yearRaw } = await admin
+    .from("workouts")
+    .select(
+      "id, source, sport_type, session_label, started_at, duration_seconds, distance_meters",
+    )
+    .eq("athlete_id", athleteId)
+    .gte("started_at", sinceYear)
+    .order("started_at", { ascending: false })
+    .limit(400);
+
+  const yearWorkouts: WorkoutForAnalysis[] = ((yearRaw ?? []) as Array<
+    Record<string, unknown>
+  >).map((w) => ({
+    id: String(w.id ?? ""),
+    source: String(w.source ?? "strava"),
+    sport_type: (w.sport_type as WorkoutForAnalysis["sport_type"]) ?? "other",
+    session_label: typeof w.session_label === "string" ? w.session_label : null,
+    started_at: String(w.started_at ?? ""),
+    duration_seconds: Number(w.duration_seconds ?? 0),
+    distance_meters: typeof w.distance_meters === "number" ? w.distance_meters : null,
+    avg_hr: null,
+    max_hr: null,
+    avg_cadence: null,
+    training_stress: null,
+  }));
+
+  const pr = inferRecentRacePr(yearWorkouts, today);
+
+  const slice: AthleteHistorySlice = {
+    athleteId,
+    observedMaxHr: null,
+    hrRest: null,
+    sex: "male",
+    recentRacePr: pr,
+    recentWorkouts,
+    recentWeeklyAnalyses: [],
+  };
+
+  const prediction = predictedFinish(
+    { race_date: race.race_date, race_type: race.race_type },
+    slice,
+    { today },
+  );
+
+  if (!prediction.eligible) return null;
+
+  return (
+    <div className="mt-6">
+      <PredictedFinishCard prediction={prediction} />
+    </div>
+  );
 }
 
 export default async function RacePage() {
@@ -161,6 +262,10 @@ export default async function RacePage() {
     });
   }
 
+  const predictedFinishNode = flags.PREDICTED_FINISH
+    ? await renderPredictedFinish(user.id, race, admin, today)
+    : null;
+
   return (
     <div className="mx-auto max-w-3xl px-5 py-10 md:px-8">
       <p className="font-sans text-[12px] font-medium uppercase tracking-wider text-[var(--text-muted)]">
@@ -173,6 +278,8 @@ export default async function RacePage() {
       <div className="mt-6">
         <RaceCountdownCard race={race} today={today} />
       </div>
+
+      {predictedFinishNode}
 
       <section aria-labelledby="arc-heading" className="mt-10">
         <h2
