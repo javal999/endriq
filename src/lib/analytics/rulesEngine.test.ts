@@ -577,3 +577,66 @@ function sevenDayStreakWorkouts(): WorkoutForRules[] {
     }),
   );
 }
+
+describe("T03: findings expose contributors", () => {
+  it("Rule 1 (easy %) emits Easy/Moderate/Hard contributors", () => {
+    const f = runFindings([makeWorkout({})], [], {
+      intensity: makeIntensity({
+        pctEasy: 55,
+        pctModerate: 25,
+        pctHard: 20,
+        totalRunningSeconds: 3600,
+      }),
+    });
+    const r1 = f.find((x) => x.title === "Easy volume below research target");
+    expect(r1).toBeDefined();
+    expect(r1!.contributors?.map((c) => c.label)).toEqual([
+      "Easy %",
+      "Moderate %",
+      "Hard %",
+    ]);
+  });
+
+  it("Rule 2 (load spike) emits load-ratio contributor with bad tone", () => {
+    const f = runFindings([makeWorkout({})], [], {
+      load: makeLoad({ loadRatio: 1.7, acuteLoad: 200, chronicLoad: 117 }),
+    });
+    const r2 = f.find((x) => x.title === "Training load spike");
+    expect(r2).toBeDefined();
+    const ratio = r2!.contributors?.find((c) => c.label === "Load ratio");
+    expect(ratio?.tone).toBe("bad");
+  });
+
+  it("Rule 3 (consecutive days) emits streak contributor", () => {
+    const ws = sevenDayStreakWorkouts();
+    const f = runFindings(ws, ws);
+    const r3 = f.find((x) => x.title === "Week without a full rest day");
+    expect(r3).toBeDefined();
+    expect(r3!.contributors?.[0]?.label).toBe("Consecutive training days");
+    expect(r3!.contributors?.[0]?.value).toBe("7");
+  });
+
+  it("Rule 6 (interference window) emits strength + quality + gap contributors", () => {
+    const strength = makeWorkout({
+      sport_type: "strength",
+      session_label: null,
+      started_at: "2025-04-08T08:00:00.000Z",
+      duration_seconds: 3000,
+      avg_hr: null,
+      avg_cadence: null,
+    });
+    const interval = makeWorkout({
+      sport_type: "run",
+      session_label: "interval",
+      started_at: "2025-04-08T10:00:00.000Z",
+      duration_seconds: 2400,
+    });
+    const f = runFindings([interval], [strength, interval]);
+    const r6 = f.find((x) => x.title === "Strength close to a quality run");
+    expect(r6).toBeDefined();
+    const labels = r6!.contributors?.map((c) => c.label) ?? [];
+    expect(labels).toContain("Strength session");
+    expect(labels).toContain("Interval run");
+    expect(labels).toContain("Gap (hours)");
+  });
+});

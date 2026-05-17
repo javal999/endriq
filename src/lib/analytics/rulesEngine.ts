@@ -43,6 +43,38 @@ function trainingDayKeys(workouts: WorkoutForRules[]): Set<string> {
   return keys;
 }
 
+function loadContributors(
+  load: LoadMetrics,
+  tone: "warn" | "bad",
+): NonNullable<WeeklyReportModel["findings"][number]["contributors"]> {
+  const out: NonNullable<WeeklyReportModel["findings"][number]["contributors"]> = [];
+  if (load.loadRatio != null) {
+    out.push({
+      date: "this week",
+      label: "Load ratio",
+      value: load.loadRatio.toFixed(2),
+      tone,
+    });
+  }
+  if (load.acuteLoad != null) {
+    out.push({
+      date: "trailing 7d",
+      label: "Acute load",
+      value: load.acuteLoad.toFixed(0),
+      tone: "neutral",
+    });
+  }
+  if (load.chronicLoad != null) {
+    out.push({
+      date: "trailing 28d avg",
+      label: "Chronic load",
+      value: load.chronicLoad.toFixed(0),
+      tone: "neutral",
+    });
+  }
+  return out;
+}
+
 function maxConsecutiveDayStreak(dayKeys: Set<string>): number {
   if (dayKeys.size === 0) return 0;
   const sorted = [...dayKeys].sort();
@@ -94,6 +126,26 @@ export function computeRuleFindings(options: {
       ],
       confidence: "Confidence: High — pattern visible across the week",
       evidenceStrength: "Strong",
+      contributors: [
+        {
+          date: options.weekStartIso.slice(0, 10),
+          label: "Easy %",
+          value: `${options.intensity.pctEasy}%`,
+          tone: "bad",
+        },
+        {
+          date: options.weekStartIso.slice(0, 10),
+          label: "Moderate %",
+          value: `${options.intensity.pctModerate}%`,
+          tone: "warn",
+        },
+        {
+          date: options.weekStartIso.slice(0, 10),
+          label: "Hard %",
+          value: `${options.intensity.pctHard}%`,
+          tone: options.intensity.pctHard > 15 ? "bad" : "neutral",
+        },
+      ],
     });
   }
 
@@ -110,6 +162,7 @@ export function computeRuleFindings(options: {
       ],
       confidence: "Confidence: High — ratio exceeds consensus spike band",
       evidenceStrength: "Strong",
+      contributors: loadContributors(options.load, "bad"),
     });
   } else if (
     options.load.loadRatio != null &&
@@ -125,6 +178,7 @@ export function computeRuleFindings(options: {
       ],
       confidence: "Confidence: Moderate",
       evidenceStrength: "Moderate",
+      contributors: loadContributors(options.load, "warn"),
     });
   }
 
@@ -146,6 +200,14 @@ export function computeRuleFindings(options: {
       ],
       confidence: "Confidence: Moderate — calendar inference only",
       evidenceStrength: "Moderate",
+      contributors: [
+        {
+          date: options.weekStartIso.slice(0, 10),
+          label: "Consecutive training days",
+          value: `${streak}`,
+          tone: "warn",
+        },
+      ],
     });
   }
 
@@ -171,6 +233,20 @@ export function computeRuleFindings(options: {
         ],
         confidence: "Confidence: Moderate — single-session avg HR",
         evidenceStrength: "Moderate",
+        contributors: [
+          {
+            date: utcDayKey(w.started_at),
+            label: "Long run avg HR",
+            value: `${w.avg_hr} bpm`,
+            tone: "warn",
+          },
+          {
+            date: utcDayKey(w.started_at),
+            label: "% of HRmax",
+            value: `${Math.round(frac * 100)}%`,
+            tone: frac > 0.85 ? "bad" : "warn",
+          },
+        ],
       });
       break;
     }
@@ -196,6 +272,12 @@ export function computeRuleFindings(options: {
       ],
       confidence: "Confidence: Low — cadence from vendor summary only",
       evidenceStrength: "Limited",
+      contributors: intervals.slice(0, 3).map((w) => ({
+        date: utcDayKey(w.started_at),
+        label: "Cadence (interval session)",
+        value: `${w.avg_cadence} spm`,
+        tone: "warn" as const,
+      })),
     });
   }
 
@@ -233,6 +315,26 @@ export function computeRuleFindings(options: {
               ? "Confidence: High — within acute interference window"
               : "Confidence: Moderate — borderline timing",
           evidenceStrength: hoursAfter <= 2 ? "Strong" : "Moderate",
+          contributors: [
+            {
+              date: utcDayKey(s.started_at),
+              label: "Strength session",
+              value: `${Math.round(s.duration_seconds / 60)} min`,
+              tone: "neutral",
+            },
+            {
+              date: utcDayKey(q.started_at),
+              label: q.session_label === "interval" ? "Interval run" : "Tempo run",
+              value: `${Math.round(q.duration_seconds / 60)} min`,
+              tone: "warn",
+            },
+            {
+              date: utcDayKey(q.started_at),
+              label: "Gap (hours)",
+              value: hoursAfter.toFixed(1),
+              tone: hoursAfter <= 2 ? "bad" : "warn",
+            },
+          ],
         });
         break outer;
       }

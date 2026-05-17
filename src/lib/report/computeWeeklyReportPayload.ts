@@ -454,6 +454,12 @@ export function assembleWeeklyReportPayload(input: {
     missingProfileFields,
     strengthOptIn: Boolean((athlete as { strength_recommendations_optin?: unknown }).strength_recommendations_optin),
     roastEnabled: Boolean((athlete as { roast_enabled?: unknown }).roast_enabled),
+    persona: (() => {
+      const p = (athlete as { persona?: unknown }).persona;
+      return p === "coached" || p === "hybrid" || p === "self_coached"
+        ? p
+        : "self_coached";
+    })(),
     summary: {
       distanceKm: emptyWeek ? "—" : distKm.toFixed(1),
       distanceMeta,
@@ -654,7 +660,7 @@ export async function computeWeeklyReportPayload(
   const { data: athlete, error: athErr } = await db
     .from("athletes")
     .select(
-      "id, observed_max_hr, goal_race_type, goal_race_date, goal_weekly_km, estimated_zone2_ceiling, hr_rest, sex, preferred_locale, strength_recommendations_optin, roast_enabled",
+      "id, observed_max_hr, goal_race_type, goal_race_date, goal_weekly_km, estimated_zone2_ceiling, hr_rest, sex, preferred_locale, strength_recommendations_optin, roast_enabled, persona",
     )
     .eq("id", athleteId)
     .maybeSingle();
