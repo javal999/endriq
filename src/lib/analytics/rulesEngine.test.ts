@@ -640,3 +640,83 @@ describe("T03: findings expose contributors", () => {
     expect(labels).toContain("Gap (hours)");
   });
 });
+
+describe("T10: Rule 4 stream-based long-run HR drift", () => {
+  function longRunWithBuckets(
+    drift: number,
+    startHr = 145,
+  ): WorkoutForRules {
+    const km = Array.from({ length: 18 }, (_, i) => ({
+      km_index: i + 1,
+      avg_hr: Math.round(startHr * (1 + drift * (i / 17))),
+      max_hr: Math.round(startHr * (1 + drift * (i / 17))) + 3,
+      duration_sec: 300,
+      pace_sec_per_km: 300,
+    }));
+    return {
+      sport_type: "run",
+      session_label: "long_run",
+      started_at: "2025-04-10T12:00:00.000Z",
+      duration_seconds: 18 * 300,
+      // Low session-avg HR so the legacy heuristic would NOT fire — proves
+      // the stream-based path is what's firing the rule.
+      avg_hr: 145,
+      avg_cadence: null,
+      hr_per_km: { km },
+    };
+  }
+
+  it("fires when first-third vs last-third drift exceeds 6%", () => {
+    const w = longRunWithBuckets(0.12); // 12% drift
+    const f = runFindings([w], [w], { observedMaxHr: 200 });
+    const hit = f.find((x) => x.title === "Long run pace ties easy runs");
+    expect(hit).toBeDefined();
+    expect(hit?.evidenceStrength).toBe("Strong");
+    expect(hit?.body).toMatch(/drift was/);
+  });
+
+  it("does NOT fire when drift is below 6%", () => {
+    const w = longRunWithBuckets(0.03); // 3% drift
+    const f = runFindings([w], [w], { observedMaxHr: 200 });
+    expect(f.some((x) => x.title === "Long run pace ties easy runs")).toBe(false);
+  });
+
+  it("falls back to session-average when buckets are absent", () => {
+    const w: WorkoutForRules = {
+      sport_type: "run",
+      session_label: "long_run",
+      started_at: "2025-04-10T12:00:00.000Z",
+      duration_seconds: 4800,
+      avg_hr: 165, // 82.5% of 200 — over the 80% threshold
+      avg_cadence: null,
+    };
+    const f = runFindings([w], [w], { observedMaxHr: 200 });
+    const hit = f.find((x) => x.title === "Long run pace ties easy runs");
+    expect(hit).toBeDefined();
+    expect(hit?.evidenceStrength).toBe("Moderate");
+  });
+
+  it("falls back to session-average when buckets exist but are too sparse (<6)", () => {
+    const w: WorkoutForRules = {
+      sport_type: "run",
+      session_label: "long_run",
+      started_at: "2025-04-10T12:00:00.000Z",
+      duration_seconds: 1500,
+      avg_hr: 170,
+      avg_cadence: null,
+      hr_per_km: {
+        km: Array.from({ length: 4 }, (_, i) => ({
+          km_index: i + 1,
+          avg_hr: 150 + i * 6,
+          max_hr: 160,
+          duration_sec: 300,
+          pace_sec_per_km: 300,
+        })),
+      },
+    };
+    const f = runFindings([w], [w], { observedMaxHr: 200 });
+    const hit = f.find((x) => x.title === "Long run pace ties easy runs");
+    expect(hit).toBeDefined();
+    expect(hit?.evidenceStrength).toBe("Moderate");
+  });
+});
