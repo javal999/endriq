@@ -8,7 +8,9 @@ import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages } from "next-intl/server";
 import "./globals.css";
 import { Nav } from "@/components/nav";
+import { BottomNav } from "@/components/layout/bottom-nav";
 import { SiteFooter } from "@/components/site-footer";
+import { createClient } from "@/lib/supabase/server";
 
 const interTight = Inter_Tight({
   variable: "--font-inter-tight",
@@ -43,6 +45,13 @@ export default async function RootLayout({
   const locale = await getLocale();
   const messages = await getMessages();
 
+  // T04 mobile pass: BottomNav only renders for signed-in users — the
+  // four mobile tabs (Today / Plan / Race / Profile) are post-auth surfaces.
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   return (
     <html
       lang={locale}
@@ -54,10 +63,14 @@ export default async function RootLayout({
             Skip to content
           </a>
           <Nav />
-          <main id="main-content" className="flex-1">
+          <main
+            id="main-content"
+            className={user ? "flex-1 pb-20 md:pb-0" : "flex-1"}
+          >
             {children}
           </main>
           <SiteFooter />
+          {user && <BottomNav />}
         </NextIntlClientProvider>
       </body>
     </html>
