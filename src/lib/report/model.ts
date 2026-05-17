@@ -59,6 +59,14 @@ export interface WeeklyReportModel {
     citations: { label: string; href: string }[];
     confidence: string;
     evidenceStrength?: string;
+    /** Phase 2.1 T03: data points that drove this finding. Optional —
+     *  older persisted findings won't have it; UI degrades gracefully. */
+    contributors?: Array<{
+      date: string;
+      label: string;
+      value: string;
+      tone: "good" | "warn" | "bad" | "neutral";
+    }>;
   }>;
   emptyWeek?: boolean;
   /** True when athlete.hr_rest is null — signals TRIMP uses HR-max-only approximation. */
@@ -71,6 +79,8 @@ export interface WeeklyReportModel {
   strengthOptIn?: boolean;
   /** Whether athlete has roast mode enabled — shows tab even before first regen. */
   roastEnabled?: boolean;
+  /** Athlete persona — controls Finding contributors default open state (T03). */
+  persona?: "coached" | "self_coached" | "hybrid";
   /** UUID share_id from weekly_analyses — used for the /api/share/[shareId] endpoint. */
   shareId?: string;
   /** 8-week trend data for sparklines (undefined when insufficient history). */

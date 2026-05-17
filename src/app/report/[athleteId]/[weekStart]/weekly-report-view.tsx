@@ -283,6 +283,8 @@ export async function WeeklyReportView({
               citations={f.citations}
               confidence={f.confidence}
               evidenceStrength={f.evidenceStrength}
+              contributors={f.contributors}
+              persona={model.persona ?? "self_coached"}
               methodologyHref={methodologyHrefForFinding(f.title, f.body)}
             />
           ))
@@ -406,6 +408,8 @@ function Finding({
   citations,
   confidence,
   evidenceStrength,
+  contributors,
+  persona,
   methodologyHref,
 }: {
   severity: string;
@@ -415,6 +419,13 @@ function Finding({
   citations: { label: string; href: string }[];
   confidence: string;
   evidenceStrength?: string;
+  contributors?: Array<{
+    date: string;
+    label: string;
+    value: string;
+    tone: "good" | "warn" | "bad" | "neutral";
+  }>;
+  persona: "coached" | "self_coached" | "hybrid";
   methodologyHref: string;
 }) {
   const tag =
@@ -424,6 +435,8 @@ function Finding({
         ? "bg-[rgba(184,122,10,0.08)] text-[var(--status-warn)]"
         : "bg-[rgba(46,94,78,0.09)] text-[var(--accent)]";
   const evidence = evidenceStrength ?? "Strong";
+  const hasContribs = Array.isArray(contributors) && contributors.length > 0;
+  const defaultOpen = persona === "self_coached";
   return (
     <article className="mb-3 rounded border border-[var(--border)] bg-[var(--surface)] p-6 last:mb-0">
       <div className="flex flex-wrap items-center gap-3">
@@ -433,6 +446,46 @@ function Finding({
         <h3 className="font-sans text-[14px] font-semibold">{title}</h3>
       </div>
       <p className="mt-3 text-[14px] leading-relaxed text-[var(--text-secondary)]">{body}</p>
+      {hasContribs ? (
+        <details
+          className="mt-3 rounded-sm border border-[var(--border-hairline,var(--border))] bg-[var(--surface-raised,transparent)] open:bg-[var(--surface)]"
+          {...(defaultOpen ? { open: true } : {})}
+        >
+          <summary className="cursor-pointer list-none px-3 py-2 font-sans text-[12px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)]">
+            <span className="select-none">Why we flagged this</span>
+          </summary>
+          <ul className="border-t border-[var(--border-hairline,var(--border))] divide-y divide-[var(--border-hairline,var(--border))]">
+            {contributors!.map((c, idx) => {
+              const valueColor =
+                c.tone === "bad"
+                  ? "text-[var(--status-bad)]"
+                  : c.tone === "warn"
+                    ? "text-[var(--status-warn)]"
+                    : c.tone === "good"
+                      ? "text-[var(--status-good)]"
+                      : "text-[var(--text-primary)]";
+              return (
+                <li
+                  key={`${c.label}-${idx}`}
+                  className="flex items-baseline justify-between gap-3 px-3 py-2"
+                >
+                  <span className="font-sans text-[12px] text-[var(--text-secondary)]">
+                    <span className="font-mono text-[11px] text-[var(--text-muted)]">
+                      {c.date}
+                    </span>{" "}
+                    · {c.label}
+                  </span>
+                  <span
+                    className={`font-mono text-[12px] font-medium tabular-nums ${valueColor}`}
+                  >
+                    {c.value}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        </details>
+      ) : null}
       <p className="mt-3 font-[family-name:var(--font-instrument)] text-[13px] italic text-[var(--text-muted)]">
         {citations.map((c, i) => (
           <span key={c.href}>
