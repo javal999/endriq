@@ -6,8 +6,12 @@ import { citationToLink } from "@/lib/data/citations";
 import { ProfileCompletenessBanner } from "@/components/profile-completeness-banner";
 import { RaceCountdownCard } from "@/components/domain/race-countdown-card";
 import { PreSessionPreviewCard } from "@/components/domain/pre-session-preview-card";
+import { AdvisoryBlock } from "@/components/ui/advisory-block";
 import { getPlannedSession } from "@/lib/plan/getPlannedSession";
-import type { Feeling } from "@/lib/analytics/recoveryOverride";
+import {
+  shouldRecommendRestDay,
+  type Feeling,
+} from "@/lib/analytics/recoveryOverride";
 
 export default async function DashboardPage() {
   const week = isoMondayLocal();
@@ -71,6 +75,28 @@ export default async function DashboardPage() {
     }
   }
 
+  // Audit followup #5: surface a "consider a rest day" banner after 3
+  // consecutive "tired" check-ins (per F12 recovery-override spec). Read
+  // is bounded by the trailing window the function needs.
+  let restDayHint = false;
+  if (user) {
+    const admin = createAdminClient();
+    const { data: trailing } = await admin
+      .from("recovery_check_in")
+      .select("check_in_date, feeling")
+      .eq("athlete_id", user.id)
+      .order("check_in_date", { ascending: false })
+      .limit(3);
+    if (trailing && trailing.length === 3) {
+      // Reverse to chronological order to match shouldRecommendRestDay's contract.
+      const chronological = [...trailing].reverse().map((r) => ({
+        check_in_date: String(r.check_in_date),
+        feeling: r.feeling as Feeling,
+      }));
+      restDayHint = shouldRecommendRestDay(chronological);
+    }
+  }
+
   // T12: F11 pre-session preview takes the dashboard top slot after 18:00
   // local on a day where tomorrow has a planned session. Otherwise the
   // F14 race countdown card keeps the slot.
@@ -118,6 +144,17 @@ export default async function DashboardPage() {
       {missingProfileFields.length > 0 && (
         <div className="mb-8">
           <ProfileCompletenessBanner missingFields={missingProfileFields} />
+        </div>
+      )}
+
+      {restDayHint && (
+        <div className="mb-6">
+          <AdvisoryBlock tone="warn">
+            <p className="font-sans text-[14px] text-[var(--text-primary)]">
+              You&apos;ve logged &quot;tired&quot; three nights in a row — consider
+              taking a full rest day to recover before the next hard session.
+            </p>
+          </AdvisoryBlock>
         </div>
       )}
 

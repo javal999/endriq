@@ -36,7 +36,18 @@ const eslintConfig = defineConfig([
       "src/**/*.ts",
       "src/**/*.tsx",
     ],
-    ignores: ["src/lib/plan/**", "src/app/api/planned-session/**"],
+    // Exceptions to the A2 read-path rule:
+    //   - lib/plan/ — getPlannedSession itself
+    //   - /api/planned-session — the only mutation API
+    //   - /settings/training-pattern — the post-onboarding edit surface
+    //     (reads + writes athletes.typical_week_pattern by design)
+    //   - /onboarding — the new-athlete form does the same upsert
+    ignores: [
+      "src/lib/plan/**",
+      "src/app/api/planned-session/**",
+      "src/app/settings/training-pattern/**",
+      "src/app/onboarding/**",
+    ],
     rules: {
       "no-restricted-syntax": [
         "error",
